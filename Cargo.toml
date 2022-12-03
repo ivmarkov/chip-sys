@@ -1,0 +1,13 @@
+[package]
+name = "connectedhomeip-sys"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+autocxx = "0.23.1"
+cxx = "1.0"
+moveit = "0.5.1"
+
+[build-dependencies]
+autocxx-build = "0.23.1"
+miette = { version = "5", features = ["fancy"] } # optional but gives nicer error messages!

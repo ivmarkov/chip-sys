@@ -7,11 +7,35 @@ fn main() -> miette::Result<()> {
     let sdk = PathBuf::from(CHIP_SDK);
 
     // Libs
+
     println!(
         "cargo:rustc-link-search={}",
         sdk.join(CHIP_SDK_BUILD).join("lib").display()
     );
     println!("cargo:rustc-link-lib=CHIP");
+
+    println!(
+        "cargo:rustc-link-search={}",
+        sdk.join(CHIP_SDK_BUILD)
+            .join("obj/src/app/common/lib")
+            .display()
+    );
+
+    println!(
+        "cargo:rustc-link-search={}",
+        sdk.join(CHIP_SDK_BUILD)
+            .join("obj/src/app/server/lib")
+            .display()
+    );
+
+    println!(
+        "cargo:rustc-link-search={}",
+        sdk.join(CHIP_SDK_BUILD).join("obj/src/app/lib").display()
+    );
+
+    println!("cargo:rustc-link-lib=ClusterObjects");
+    println!("cargo:rustc-link-lib=CHIPAppServer");
+    println!("cargo:rustc-link-lib=CHIPDataModel");
 
     // TODO: Linux-specific
     let glib = pkg_config::Config::new()
@@ -50,7 +74,7 @@ fn main() -> miette::Result<()> {
         // Third party
         third_party.join("nlassert/repo/include"),
         third_party.join("nlio/repo/include"),
-        third_party.join("inipp/repo/inipp/inipp"),
+        third_party.join("inipp/repo/inipp"),
     ]
     .into_iter()
     .chain(glib.include_paths.into_iter())

@@ -10,12 +10,16 @@ include_cpp! {
 
     #include "lib/core/CHIPError.h"
     #include "platform/PlatformManager.h"
+    #include "app/server/Dnssd.h"
+    #include "app/server/Server.h"
 
     safety!(unsafe)
 
     generate!("chip::ChipError")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::PlatformManager")
+    generate!("chip::Server")
+    generate!("chip::CommonCaseDeviceServerInitParams")
 
     generate!("singleton_raw::platform_mgr")
 }

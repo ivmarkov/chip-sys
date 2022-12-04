@@ -38,6 +38,10 @@ fn main() -> miette::Result<()> {
     let includes = [
         // Ours
         PathBuf::from("src/include"),
+        // Generated
+        sdk.join(CHIP_SDK_BUILD).join("gen/include"),
+        // Generated ZAP includes
+        sdk.join("zzz_generated/app-common"),
         // SDK - Linux standalone (TODO: needs config)
         sdk.join("config/standalone"),
         // SDK
@@ -47,10 +51,6 @@ fn main() -> miette::Result<()> {
         third_party.join("nlassert/repo/include"),
         third_party.join("nlio/repo/include"),
         third_party.join("inipp/repo/inipp/inipp"),
-        // Generated ZAP includes
-        sdk.join("zzz_generated/app-common"),
-        // Generated
-        sdk.join(CHIP_SDK_BUILD).join("gen/include"),
     ]
     .into_iter()
     .chain(glib.include_paths.into_iter())

@@ -5,8 +5,8 @@ use core::fmt::Display;
 use autocxx::prelude::*; // use all the main autocxx functions
 
 include_cpp! {
-    #include "util.h"
-    //#include "ChipProjectConfig.h"
+    #include "build-config.h"
+
     #include "lib/core/CHIPError.h"
     #include "platform/PlatformManager.h"
 

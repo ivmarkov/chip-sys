@@ -6,14 +6,18 @@ use autocxx::prelude::*; // use all the main autocxx functions
 
 include_cpp! {
     #include "build-config.h"
+    #include "singleton.h"
 
     #include "lib/core/CHIPError.h"
     #include "platform/PlatformManager.h"
 
     safety!(unsafe)
+
     generate!("chip::ChipError")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::PlatformManager")
+
+    generate!("singleton_raw::platform_mgr")
 }
 
 pub use ffi::*;
@@ -55,3 +59,7 @@ macro_rules! chkerr {
         }
     }};
 }
+
+// pub mod singleton {
+//     pub fn platform_mgr() -> &'static mut chip::DeviceLayer::
+// }

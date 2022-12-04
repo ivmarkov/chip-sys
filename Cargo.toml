@@ -10,4 +10,5 @@ moveit = "0.5.1"
 
 [build-dependencies]
 autocxx-build = "0.23.1"
+pkg-config = "0.3.26"
 miette = { version = "5", features = ["fancy"] } # optional but gives nicer error messages!

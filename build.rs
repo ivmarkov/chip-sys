@@ -8,10 +8,10 @@ fn main() -> miette::Result<()> {
 
     // Libs
 
-    println!(
-        "cargo:rustc-link-search={}",
-        sdk.join(CHIP_SDK_BUILD).join("lib").display()
-    );
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join(CHIP_SDK_BUILD).join("lib").display()
+    // );
     //println!("cargo:rustc-link-lib=CHIP");
 
     // println!(
@@ -33,20 +33,20 @@ fn main() -> miette::Result<()> {
     //     sdk.join(CHIP_SDK_BUILD).join("obj/src/app/lib").display()
     // );
 
-    println!(
-        "cargo:rustc-link-search={}",
-        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/common/lib").display()
-    );
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/common/lib").display()
+    // );
 
-    println!(
-        "cargo:rustc-link-search={}",
-        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/server/lib").display()
-    );
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/server/lib").display()
+    // );
 
-    println!(
-        "cargo:rustc-link-search={}",
-        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/lib").display()
-    );
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/lib").display()
+    // );
 
     println!("cargo:rustc-link-search={}", "lib/out/custom");
 
@@ -75,7 +75,7 @@ fn main() -> miette::Result<()> {
 
     // TODO: Linux-specific
     println!("cargo:rustc-link-lib=crypto");
-    println!("cargo:rustc-link-lib=asan");
+    //println!("cargo:rustc-link-lib=asan");
 
     let third_party = sdk.join("third_party");
 

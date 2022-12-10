@@ -73,3 +73,5 @@ macro_rules! chkerr {
 // pub mod singleton {
 //     pub fn platform_mgr() -> &'static mut chip::DeviceLayer::
 // }
+
+pub mod foo;

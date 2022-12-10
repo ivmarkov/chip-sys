@@ -23,8 +23,10 @@ include_cpp! {
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::PlatformManager")
     generate!("chip::Server")
+    generate!("chip::ServerInitParams")
     generate!("chip::CommonCaseDeviceServerInitParams")
 
+    generate!("singleton_raw::server")
     generate!("singleton_raw::platform_mgr")
 }
 

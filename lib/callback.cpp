@@ -15,3 +15,7 @@ bool emberAfActionsClusterInstantActionCallback(
     
     return rustEmberAfActionsClusterInstantActionCallback(commandObj, &commandPath, &commandData);
 }
+
+void MatterActionsPluginServerInitCallback(void) {
+    // TODO registerAttributeAccessOverride(&gAttrAccess);
+}

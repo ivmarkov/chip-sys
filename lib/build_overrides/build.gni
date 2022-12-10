@@ -1,0 +1,3 @@
+declare_args() {
+    build_root = "/home/ivan/dev/connectedhomeip/build"
+}

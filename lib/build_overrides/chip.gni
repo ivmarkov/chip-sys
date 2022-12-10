@@ -1,0 +1,3 @@
+declare_args() {
+    chip_root = "/home/ivan/dev/connectedhomeip"
+}

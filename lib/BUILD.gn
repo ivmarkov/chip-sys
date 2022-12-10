@@ -1,0 +1,28 @@
+import("//build_overrides/chip.gni")
+import("${chip_root}/build/chip/tools.gni")
+
+assert(chip_build_tools)
+
+static_library("app") {
+  output_name = "libApp"
+  complete_static_lib = true  
+
+  sources = [
+    "callback.cpp",
+  ]
+
+  deps = [
+    "ember",
+    "${chip_root}/src/lib",
+  ]
+
+  cflags = [ "-Wconversion" ]
+
+  include_dirs = [ "include" ]
+
+  output_dir = root_out_dir
+}
+
+#group("linux") {
+#  deps = [ ":chip-bridge-app" ]
+#}

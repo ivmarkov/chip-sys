@@ -1,4 +1,4 @@
-// TODO: autocxx is not compatible yet #![no_std]
+// TODO: autocxx is not no_std compatible yet #![no_std]
 
 use core::fmt::Display;
 
@@ -10,11 +10,15 @@ include_cpp! {
 
     #include "lib/core/CHIPError.h"
     #include "platform/PlatformManager.h"
+    #include "app/InteractionModelEngine.h"
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
 
     safety!(unsafe)
 
+    generate!("chip::app::CommandHandler")
+    generate!("chip::app::ConcreteCommandPath")
+    generate!("chip::app::Clusters::Actions::Commands::InstantAction::DecodableType")
     generate!("chip::ChipError")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::PlatformManager")

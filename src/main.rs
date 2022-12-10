@@ -20,3 +20,12 @@ fn main() {
 // fn run_chip_loop() {
 
 // }
+
+#[no_mangle]
+extern "C" fn rustEmberAfActionsClusterInstantActionCallback(
+    commandObj: *mut chip::app::CommandHandler,
+    commandPath: *const chip::app::ConcreteCommandPath,
+    commandData: *const chip::app::Clusters::Actions::Commands::InstantAction::DecodableType,
+) -> bool {
+    true
+}

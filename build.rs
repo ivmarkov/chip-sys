@@ -12,30 +12,49 @@ fn main() -> miette::Result<()> {
         "cargo:rustc-link-search={}",
         sdk.join(CHIP_SDK_BUILD).join("lib").display()
     );
-    println!("cargo:rustc-link-lib=CHIP");
+    //println!("cargo:rustc-link-lib=CHIP");
+
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join(CHIP_SDK_BUILD)
+    //         .join("obj/src/app/common/lib")
+    //         .display()
+    // );
+
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join(CHIP_SDK_BUILD)
+    //         .join("obj/src/app/server/lib")
+    //         .display()
+    // );
+
+    // println!(
+    //     "cargo:rustc-link-search={}",
+    //     sdk.join(CHIP_SDK_BUILD).join("obj/src/app/lib").display()
+    // );
 
     println!(
         "cargo:rustc-link-search={}",
-        sdk.join(CHIP_SDK_BUILD)
-            .join("obj/src/app/common/lib")
-            .display()
+        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/common/lib").display()
     );
 
     println!(
         "cargo:rustc-link-search={}",
-        sdk.join(CHIP_SDK_BUILD)
-            .join("obj/src/app/server/lib")
-            .display()
+        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/server/lib").display()
     );
 
     println!(
         "cargo:rustc-link-search={}",
-        sdk.join(CHIP_SDK_BUILD).join("obj/src/app/lib").display()
+        sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/lib").display()
     );
 
-    println!("cargo:rustc-link-lib=ClusterObjects");
-    println!("cargo:rustc-link-lib=CHIPAppServer");
-    println!("cargo:rustc-link-lib=CHIPDataModel");
+    println!("cargo:rustc-link-search={}", "lib/out/custom");
+
+    //println!("cargo:rustc-link-lib=CHIPAppServer");
+    //println!("cargo:rustc-link-lib=CHIPDataModel");
+    //println!("cargo:rustc-link-lib=ClusterObjects");
+    //println!("cargo:rustc-link-lib=MatterDeviceInfoProviderExample");
+    println!("cargo:rustc-link-lib=App");
 
     // TODO: Linux-specific
     let glib = pkg_config::Config::new()
@@ -56,6 +75,7 @@ fn main() -> miette::Result<()> {
 
     // TODO: Linux-specific
     println!("cargo:rustc-link-lib=crypto");
+    println!("cargo:rustc-link-lib=asan");
 
     let third_party = sdk.join("third_party");
 

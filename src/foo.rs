@@ -13,12 +13,39 @@ pub fn foo() {
 
     println!("Initialized");
 
+    // if (options.discriminator.HasValue())
+    // {
+    //     options.payload.discriminator.SetLongValue(options.discriminator.Value());
+    // }
+    // else
+    // {
+    //     uint16_t defaultTestDiscriminator = 0;
+    //     chip::DeviceLayer::TestOnlyCommissionableDataProvider TestOnlyCommissionableDataProvider;
+    //     VerifyOrDie(TestOnlyCommissionableDataProvider.GetSetupDiscriminator(defaultTestDiscriminator) == CHIP_NO_ERROR);
+
+    //     ChipLogError(Support,
+    //                  "*** WARNING: Using temporary test discriminator %u due to --discriminator not "
+    //                  "given on command line. This is temporary and will disappear. Please update your scripts "
+    //                  "to explicitly configure discriminator. ***",
+    //                  static_cast<unsigned>(defaultTestDiscriminator));
+    //     options.payload.discriminator.SetLongValue(defaultTestDiscriminator);
+    // }
+
+    //let cdp = LinuxCommissionableDataProvider::new().within_unique_ptr();
+
+
+    // cdp.pin_mut().Init(
+    //     options.spake2pVerifier, 
+    //     options.spake2pSalt, 
+    //     spake2pIterationCount, 
+    //     setupPasscode,
+    //     options.payload.discriminator.GetLongValue());
+
     let mut init_params = chip::CommonCaseDeviceServerInitParams::new().within_unique_ptr();
 
     // Init Data Model and CHIP App Server
     chkerr!(init_params
-        .as_mut()
-        .unwrap()
+        .pin_mut()
         .InitializeStaticResourcesBeforeServerInit())
     .unwrap();
 
@@ -42,4 +69,8 @@ extern "C" fn rustEmberAfActionsClusterInstantActionCallback(
     commandData: *const chip::app::Clusters::Actions::Commands::InstantAction::DecodableType,
 ) -> bool {
     true
+}
+
+#[no_mangle]
+extern "C" fn rustMatterActionsPluginServerInitCallback() {
 }

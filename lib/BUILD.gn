@@ -8,6 +8,8 @@ static_library("app") {
   complete_static_lib = true  
 
   sources = [
+    "${chip_root}/examples/platform/linux/LinuxCommissionableDataProvider.h",
+    "${chip_root}/examples/platform/linux/LinuxCommissionableDataProvider.cpp",
     "callback.cpp",
   ]
 

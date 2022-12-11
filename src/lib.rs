@@ -1,6 +1,7 @@
 // TODO: autocxx is not no_std compatible yet #![no_std]
 
 use core::fmt::Display;
+use std::error::Error; // TODO: Replace with core::error::Error in 1.66
 
 use autocxx::prelude::*; // use all the main autocxx functions
 
@@ -14,6 +15,8 @@ include_cpp! {
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
 
+    #include "platform/linux/LinuxCommissionableDataProvider.h"
+
     safety!(unsafe)
 
     generate!("chip::app::CommandHandler")
@@ -25,6 +28,8 @@ include_cpp! {
     generate!("chip::Server")
     generate!("chip::ServerInitParams")
     generate!("chip::CommonCaseDeviceServerInitParams")
+
+    generate!("LinuxCommissionableDataProvider")
 
     generate!("singleton_raw::server")
     generate!("singleton_raw::platform_mgr")
@@ -51,7 +56,7 @@ impl Display for ChipError {
     }
 }
 
-//impl Error for ChipError {}
+impl Error for ChipError {}
 
 #[macro_export]
 macro_rules! chkerr {
@@ -73,5 +78,3 @@ macro_rules! chkerr {
 // pub mod singleton {
 //     pub fn platform_mgr() -> &'static mut chip::DeviceLayer::
 // }
-
-pub mod foo;

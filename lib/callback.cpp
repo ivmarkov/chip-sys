@@ -8,6 +8,8 @@ extern "C" bool rustEmberAfActionsClusterInstantActionCallback(
     const app::Clusters::Actions::Commands::InstantAction::DecodableType* commandData
 );
 
+extern "C" bool rustMatterActionsPluginServerInitCallback();
+
 bool emberAfActionsClusterInstantActionCallback(
     app::CommandHandler* commandObj, 
     const app::ConcreteCommandPath& commandPath,
@@ -17,5 +19,5 @@ bool emberAfActionsClusterInstantActionCallback(
 }
 
 void MatterActionsPluginServerInitCallback(void) {
-    // TODO registerAttributeAccessOverride(&gAttrAccess);
+    rustMatterActionsPluginServerInitCallback();
 }

@@ -91,6 +91,8 @@ fn main() -> miette::Result<()> {
         // SDK
         sdk.join("src/include"),
         sdk.join("src"),
+        // Examples
+        sdk.join("examples"),
         // Third party
         third_party.join("nlassert/repo/include"),
         third_party.join("nlio/repo/include"),

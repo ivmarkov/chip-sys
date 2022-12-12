@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 fn main() -> miette::Result<()> {
     const CHIP_SDK: &str = "/home/ivan/dev/connectedhomeip";
-    const CHIP_SDK_BUILD: &str = "out/host";
+    const BUILD_OUT: &str = "out/host";
 
     let sdk = PathBuf::from(CHIP_SDK);
 
@@ -31,7 +31,6 @@ fn main() -> miette::Result<()> {
 
     // TODO: Linux-specific
     println!("cargo:rustc-link-lib=crypto");
-    //println!("cargo:rustc-link-lib=asan");
 
     let third_party = sdk.join("third_party");
 
@@ -39,7 +38,7 @@ fn main() -> miette::Result<()> {
         // Ours
         PathBuf::from("src/include"),
         // Generated
-        sdk.join(CHIP_SDK_BUILD).join("gen/include"),
+        sdk.join(BUILD_OUT).join("gen/include"),
         // Generated ZAP includes
         sdk.join("zzz_generated/app-common"),
         // SDK - Linux standalone (TODO: needs config)

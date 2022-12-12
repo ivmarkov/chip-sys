@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 autocxx = "0.23.1"
-cxx = "1.0"
+cxx = "1.0.78"
 moveit = "0.5.1"
 
 [build-dependencies]

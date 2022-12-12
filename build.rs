@@ -8,53 +8,9 @@ fn main() -> miette::Result<()> {
 
     // Libs
 
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join(CHIP_SDK_BUILD).join("lib").display()
-    // );
-    //println!("cargo:rustc-link-lib=CHIP");
+    println!("cargo:rustc-link-search={}", "lib/out/host");
 
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join(CHIP_SDK_BUILD)
-    //         .join("obj/src/app/common/lib")
-    //         .display()
-    // );
-
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join(CHIP_SDK_BUILD)
-    //         .join("obj/src/app/server/lib")
-    //         .display()
-    // );
-
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join(CHIP_SDK_BUILD).join("obj/src/app/lib").display()
-    // );
-
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/common/lib").display()
-    // );
-
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/server/lib").display()
-    // );
-
-    // println!(
-    //     "cargo:rustc-link-search={}",
-    //     sdk.join("out/linux-x64-all-clusters-no-ble-asan-clang/obj/third_party/connectedhomeip/src/app/lib").display()
-    // );
-
-    println!("cargo:rustc-link-search={}", "lib/out/custom");
-
-    //println!("cargo:rustc-link-lib=CHIPAppServer");
-    //println!("cargo:rustc-link-lib=CHIPDataModel");
-    //println!("cargo:rustc-link-lib=ClusterObjects");
-    //println!("cargo:rustc-link-lib=MatterDeviceInfoProviderExample");
-    println!("cargo:rustc-link-lib=App");
+    println!("cargo:rustc-link-lib=CHIPALL");
 
     // TODO: Linux-specific
     let glib = pkg_config::Config::new()
@@ -91,8 +47,6 @@ fn main() -> miette::Result<()> {
         // SDK
         sdk.join("src/include"),
         sdk.join("src"),
-        // Examples
-        sdk.join("examples"),
         // Third party
         third_party.join("nlassert/repo/include"),
         third_party.join("nlio/repo/include"),

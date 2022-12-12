@@ -3,14 +3,12 @@ import("${chip_root}/build/chip/tools.gni")
 
 assert(chip_build_tools)
 
-static_library("app") {
-  output_name = "libApp"
+static_library("chip_all") {
+  output_name = "libCHIPALL"
   complete_static_lib = true  
 
   sources = [
-    "${chip_root}/examples/platform/linux/LinuxCommissionableDataProvider.h",
-    "${chip_root}/examples/platform/linux/LinuxCommissionableDataProvider.cpp",
-    "callback.cpp",
+    "glue.cpp",
   ]
 
   deps = [

@@ -15,21 +15,18 @@ include_cpp! {
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
 
-    #include "platform/linux/LinuxCommissionableDataProvider.h"
-
     safety!(unsafe)
 
     generate!("chip::app::CommandHandler")
     generate!("chip::app::ConcreteCommandPath")
     generate!("chip::app::Clusters::Actions::Commands::InstantAction::DecodableType")
     generate!("chip::ChipError")
+    generate!("chip::MutableByteSpan")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::PlatformManager")
     generate!("chip::Server")
     generate!("chip::ServerInitParams")
     generate!("chip::CommonCaseDeviceServerInitParams")
-
-    generate!("LinuxCommissionableDataProvider")
 
     generate!("singleton_raw::server")
     generate!("singleton_raw::platform_mgr")

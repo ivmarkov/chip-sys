@@ -1,5 +1,6 @@
-use autocxx::WithinUniquePtr;
 use std::pin::Pin;
+
+use autocxx::WithinUniquePtr;
 
 use connectedhomeip_sys::*;
 
@@ -13,32 +14,9 @@ pub fn main() {
 
     println!("Initialized");
 
-    // if (options.discriminator.HasValue())
-    // {
-    //     options.payload.discriminator.SetLongValue(options.discriminator.Value());
-    // }
-    // else
-    // {
-    //     uint16_t defaultTestDiscriminator = 0;
-    //     chip::DeviceLayer::TestOnlyCommissionableDataProvider TestOnlyCommissionableDataProvider;
-    //     VerifyOrDie(TestOnlyCommissionableDataProvider.GetSetupDiscriminator(defaultTestDiscriminator) == CHIP_NO_ERROR);
-
-    //     ChipLogError(Support,
-    //                  "*** WARNING: Using temporary test discriminator %u due to --discriminator not "
-    //                  "given on command line. This is temporary and will disappear. Please update your scripts "
-    //                  "to explicitly configure discriminator. ***",
-    //                  static_cast<unsigned>(defaultTestDiscriminator));
-    //     options.payload.discriminator.SetLongValue(defaultTestDiscriminator);
-    // }
-
-    //let cdp = LinuxCommissionableDataProvider::new().within_unique_ptr();
-
-    // cdp.pin_mut().Init(
-    //     options.spake2pVerifier,
-    //     options.spake2pSalt,
-    //     spake2pIterationCount,
-    //     setupPasscode,
-    //     options.payload.discriminator.GetLongValue());
+    unsafe {
+        glue_InitCommissionableDataProvider();
+    }
 
     let mut init_params = chip::CommonCaseDeviceServerInitParams::new().within_unique_ptr();
 
@@ -57,12 +35,8 @@ pub fn main() {
     println!("Exiting");
 }
 
-// fn run_chip_loop() {
-
-// }
-
 #[no_mangle]
-extern "C" fn rustEmberAfActionsClusterInstantActionCallback(
+extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
     _command_obj: *mut chip::app::CommandHandler,
     _command_path: *const chip::app::ConcreteCommandPath,
     _command_data: *const chip::app::Clusters::Actions::Commands::InstantAction::DecodableType,
@@ -71,4 +45,42 @@ extern "C" fn rustEmberAfActionsClusterInstantActionCallback(
 }
 
 #[no_mangle]
-extern "C" fn rustMatterActionsPluginServerInitCallback() {}
+extern "C" fn gluecb_MatterActionsPluginServerInitCallback() {}
+
+#[no_mangle]
+extern "C" fn gluecb_CommissionableDataProvider_GetSetupDiscriminator(
+    _setup_discriminator: *mut u16,
+) -> u16 {
+    0x02d
+}
+
+#[no_mangle]
+extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pIterationCount(
+    _iteration_count: *mut u32,
+) -> u16 {
+    0x02d
+}
+
+#[no_mangle]
+extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pSalt(
+    _salt_buf: *mut chip::MutableByteSpan,
+) -> u16 {
+    0x02d
+}
+
+#[no_mangle]
+extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pVerifier(
+    _verifier_buf: *mut chip::MutableByteSpan,
+    _out_verifier_len: *mut usize,
+) -> u16 {
+    0x02d
+}
+
+#[no_mangle]
+extern "C" fn gluecb_CommissionableDataProvider_GetSetupPasscode(_setup_passcode: *mut u32) -> u16 {
+    0x02d
+}
+
+extern "C" {
+    fn glue_InitCommissionableDataProvider();
+}

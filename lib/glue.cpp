@@ -48,7 +48,7 @@ public:
     }
 
     CHIP_ERROR GetSpake2pSalt(MutableByteSpan& saltBuf) override {
-        return CHIP_ERROR_NOT_IMPLEMENTED;
+        return ChipError(gluecb_CommissionableDataProvider_GetSpake2pSalt(&saltBuf));
     }
 
     CHIP_ERROR GetSpake2pVerifier(MutableByteSpan& verifierBuf, size_t& outVerifierLen) override {
@@ -68,4 +68,16 @@ CommissionableDataProvider glue_CommissionableDataProvider;
 
 extern "C" void glue_InitCommissionableDataProvider() {
     SetCommissionableDataProvider(&glue_CommissionableDataProvider);
+}
+
+extern "C" uint8_t* glue_MutableByteSpan_data(MutableByteSpan* span) {
+    return span->data();
+}
+
+extern "C" size_t glue_MutableByteSpan_size(MutableByteSpan* span) {
+    return span->size();
+}
+
+extern "C" void glue_MutableByteSpan_reduce_size(MutableByteSpan* span, size_t size) {
+    span->reduce_size(size);
 }

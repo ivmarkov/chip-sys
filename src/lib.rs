@@ -10,10 +10,12 @@ include_cpp! {
     #include "singleton.h"
 
     #include "lib/core/CHIPError.h"
+    #include "platform/ConfigurationManager.h"
     #include "platform/PlatformManager.h"
     #include "app/InteractionModelEngine.h"
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
+    //#include "app/server/OnboardingCodesUtil.h"
 
     safety!(unsafe)
 
@@ -23,12 +25,18 @@ include_cpp! {
     generate!("chip::ChipError")
     generate!("chip::MutableByteSpan")
     generate!("chip::Platform::MemoryInit")
+    generate!("chip::DeviceLayer::ConfigurationManager")
     generate!("chip::DeviceLayer::PlatformManager")
+    //generate!("chip::RendezvousInformationFlag")
+    //generate!("chip::RendezvousInformationFlags")
     generate!("chip::Server")
     generate!("chip::ServerInitParams")
     generate!("chip::CommonCaseDeviceServerInitParams")
+    //generate!("PrintOnboardingCodes")
+    //generate!("PrintQrCodeURL")
 
     generate!("singleton_raw::server")
+    generate!("singleton_raw::configuration_mgr")
     generate!("singleton_raw::platform_mgr")
 }
 

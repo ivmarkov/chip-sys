@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 fn main() -> miette::Result<()> {
-    const CHIP_SDK: &str = "/home/ivan/dev/connectedhomeip";
+    const CHIP_SDK: &str = "/home/ivan/dev/v1/connectedhomeip";
     const BUILD_OUT: &str = "lib/out/host";
 
     let sdk = PathBuf::from(CHIP_SDK);

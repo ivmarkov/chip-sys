@@ -30,6 +30,13 @@ pub fn main() {
 
     chkerr!(server.as_mut().Init(init_params.as_ref().unwrap().as_ref())).unwrap();
 
+    let mut configuration_mgr =
+        unsafe { Pin::new_unchecked(singleton_raw::configuration_mgr().as_mut().unwrap()) };
+
+    configuration_mgr.as_mut().LogDeviceConfig();
+
+    //PrintOnboardingCodes(chip::RendezvousInformationFlag(chip::RendezvousInformationFlag::kBLE));
+
     println!("Spin loop");
 
     platform_mgr.as_mut().RunEventLoop();
@@ -53,7 +60,7 @@ extern "C" fn gluecb_MatterActionsPluginServerInitCallback() {}
 extern "C" fn gluecb_CommissionableDataProvider_GetSetupDiscriminator(
     setup_discriminator: *mut u16,
 ) -> u16 {
-    *unsafe { setup_discriminator.as_mut() }.unwrap() = 0;
+    *unsafe { setup_discriminator.as_mut() }.unwrap() = 3840;
 
     0
 }

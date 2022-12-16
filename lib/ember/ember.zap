@@ -1,5 +1,5 @@
 {
-  "featureLevel": 81,
+  "featureLevel": 80,
   "creator": "zap",
   "keyValuePairs": [
     {
@@ -5871,7 +5871,7 @@
           ],
           "attributes": [
             {
-              "name": "NameSupport",
+              "name": "name support",
               "code": 0,
               "mfgCode": null,
               "side": "server",
@@ -7320,7 +7320,7 @@
           "name": "Temperature Measurement",
           "code": 1026,
           "mfgCode": null,
-          "define": "TEMPERATURE_MEASUREMENT_CLUSTER",
+          "define": "TEMP_MEASUREMENT_CLUSTER",
           "side": "client",
           "enabled": 0,
           "attributes": [
@@ -7362,7 +7362,7 @@
           "name": "Temperature Measurement",
           "code": 1026,
           "mfgCode": null,
-          "define": "TEMPERATURE_MEASUREMENT_CLUSTER",
+          "define": "TEMP_MEASUREMENT_CLUSTER",
           "side": "server",
           "enabled": 1,
           "attributes": [

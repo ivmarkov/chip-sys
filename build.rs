@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 fn main() -> miette::Result<()> {
     const CHIP_SDK: &str = "/home/ivan/dev/connectedhomeip";
-    const BUILD_OUT: &str = "out/host";
+    const BUILD_OUT: &str = "lib/out/host";
 
     let sdk = PathBuf::from(CHIP_SDK);
 
@@ -38,9 +38,10 @@ fn main() -> miette::Result<()> {
         // Ours
         PathBuf::from("src/include"),
         // Generated
-        sdk.join(BUILD_OUT).join("gen/include"),
+        PathBuf::from(BUILD_OUT).join("gen/include"),
         // Generated ZAP includes
         sdk.join("zzz_generated/app-common"),
+        PathBuf::from("lib/include"),
         // SDK - Linux standalone (TODO: needs config)
         sdk.join("config/standalone"),
         // SDK

@@ -30,6 +30,8 @@ pub fn main() {
 
     chkerr!(server.as_mut().Init(init_params.as_ref().unwrap().as_ref())).unwrap();
 
+    println!("Spin loop");
+
     platform_mgr.as_mut().RunEventLoop();
 
     println!("Exiting");
@@ -99,7 +101,9 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pVerifier(
     ];
     //static VERIFIER: &'static [u8] = b"uWFwqugDNGiEck/po7KHwwMwwqZgN10XuyBajPGuyzUEV/iree4lOrao5GuwnlQ65CJzbeUB49s31EH+NEkg0JVI5MGCQGMMT/SRPFNRODm3wH/MBiehuFc6FJ/NH6Rmzw==";
 
-    //VerifyOrReturnError(saltBuf.size() >= kSpake2p_Max_PBKDF_Salt_Length, CHIP_ERROR_BUFFER_TOO_SMALL);
+    if unsafe { glue_MutableByteSpan_size(verifier_buf) } < VERIFIER.len() {
+        panic!("!!!");
+    }
 
     unsafe {
         core::slice::from_raw_parts_mut(glue_MutableByteSpan_data(verifier_buf), VERIFIER.len())

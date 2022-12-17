@@ -18,6 +18,12 @@ pub fn main() {
         glue_InitCommissionableDataProvider();
     }
 
+    unsafe {
+        chip::Credentials::SetDeviceAttestationCredentialsProvider(
+            chip::Credentials::Examples::GetExampleDACProvider(),
+        );
+    }
+
     let mut init_params = chip::CommonCaseDeviceServerInitParams::new().within_unique_ptr();
 
     // Init Data Model and CHIP App Server
@@ -36,6 +42,8 @@ pub fn main() {
     configuration_mgr.as_mut().LogDeviceConfig();
 
     //PrintOnboardingCodes(chip::RendezvousInformationFlag(chip::RendezvousInformationFlag::kBLE));
+
+    singleton_raw::print_onboarding_codes();
 
     println!("Spin loop");
 

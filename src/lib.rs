@@ -10,24 +10,27 @@ include_cpp! {
     #include "singleton.h"
 
     #include "lib/core/CHIPError.h"
+    #include "credentials/examples/DeviceAttestationCredsExample.h"
     #include "platform/ConfigurationManager.h"
     #include "platform/PlatformManager.h"
     #include "app/InteractionModelEngine.h"
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
-    //#include "app/server/OnboardingCodesUtil.h"
+    #include "app/server/OnboardingCodesUtil.h"
 
     safety!(unsafe)
 
     generate!("chip::app::CommandHandler")
     generate!("chip::app::ConcreteCommandPath")
     generate!("chip::app::Clusters::Actions::Commands::InstantAction::DecodableType")
+    generate!("chip::Credentials::SetDeviceAttestationCredentialsProvider")
+    generate!("chip::Credentials::Examples::GetExampleDACProvider")
     generate!("chip::ChipError")
     generate!("chip::MutableByteSpan")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::ConfigurationManager")
     generate!("chip::DeviceLayer::PlatformManager")
-    //generate!("chip::RendezvousInformationFlag")
+    generate!("chip::RendezvousInformationFlag")
     //generate!("chip::RendezvousInformationFlags")
     generate!("chip::Server")
     generate!("chip::ServerInitParams")
@@ -38,6 +41,7 @@ include_cpp! {
     generate!("singleton_raw::server")
     generate!("singleton_raw::configuration_mgr")
     generate!("singleton_raw::platform_mgr")
+    generate!("singleton_raw::print_onboarding_codes")
 }
 
 pub use ffi::*;

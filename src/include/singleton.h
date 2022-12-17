@@ -1,6 +1,7 @@
 #pragma once
 
 #include <app/server/Server.h>
+#include <app/server/OnboardingCodesUtil.h>
 #include <platform/ConfigurationManager.h>
 #include <platform/PlatformManager.h>
 
@@ -15,5 +16,9 @@ namespace singleton_raw {
 
     inline chip::DeviceLayer::ConfigurationManager* configuration_mgr() {
         return &chip::DeviceLayer::ConfigurationMgr();
+    }
+
+    inline void print_onboarding_codes() {
+        PrintOnboardingCodes(chip::RendezvousInformationFlags(chip::RendezvousInformationFlag::kOnNetwork));
     }
 }

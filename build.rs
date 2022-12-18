@@ -1,9 +1,8 @@
-use std::{
-    io::{self, Write},
-    path::{Path, PathBuf},
-};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+
 use embuild::cmd;
 use tempfile::NamedTempFile;
 

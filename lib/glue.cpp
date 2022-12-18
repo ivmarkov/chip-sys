@@ -1,3 +1,5 @@
+#include <app/util/af.h>
+#include <app/util/attribute-storage.h>
 #include <app/InteractionModelEngine.h>
 #include <lib/core/CHIPError.h>
 #include <platform/CommissionableDataProvider.h>
@@ -68,6 +70,28 @@ CommissionableDataProvider glue_CommissionableDataProvider;
 
 extern "C" void glue_InitCommissionableDataProvider() {
     SetCommissionableDataProvider(&glue_CommissionableDataProvider);
+}
+
+extern "C" uint32_t glue_emberAfSetDeviceTypeList(EndpointId endpoint, const EmberAfDeviceType* deviceTypeList, size_t deviceTypeListLen) {
+    return emberAfSetDeviceTypeList(endpoint, chip::Span<const EmberAfDeviceType>(deviceTypeList, deviceTypeListLen)).AsInteger();
+}
+
+extern "C" EmberAfStatus glue_emberAfSetDynamicEndpoint(
+    uint16_t index, 
+    chip::EndpointId id, 
+    const EmberAfEndpointType* ep,
+    const chip::DataVersion* dataVersionStorage,
+    size_t dataVersionStorageLen,
+    const EmberAfDeviceType* deviceTypeList,
+    size_t deviceTypeListLen,
+    chip::EndpointId parentEndpointId) {
+    return emberAfSetDynamicEndpoint(
+        index, 
+        id, 
+        ep, 
+        chip::Span<const chip::DataVersion>(dataVersionStorage, dataVersionStorageLen),
+        chip::span<const EmberAfDeviceType>(deviceTypeList, deviceTypeListLen),
+        parentEndpointId);
 }
 
 extern "C" uint8_t* glue_MutableByteSpan_data(MutableByteSpan* span) {

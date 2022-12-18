@@ -17,6 +17,8 @@ include_cpp! {
     #include "app/server/Dnssd.h"
     #include "app/server/Server.h"
     #include "app/server/OnboardingCodesUtil.h"
+    #include "app/util/af.h"
+    #include "app/util/attribute-storage.h"
 
     safety!(unsafe)
 
@@ -26,6 +28,7 @@ include_cpp! {
     generate!("chip::Credentials::SetDeviceAttestationCredentialsProvider")
     generate!("chip::Credentials::Examples::GetExampleDACProvider")
     generate!("chip::ChipError")
+    generate!("chip::Span")
     generate!("chip::MutableByteSpan")
     generate!("chip::Platform::MemoryInit")
     generate!("chip::DeviceLayer::ConfigurationManager")
@@ -37,6 +40,24 @@ include_cpp! {
     generate!("chip::CommonCaseDeviceServerInitParams")
     //generate!("PrintOnboardingCodes")
     //generate!("PrintQrCodeURL")
+
+    generate_pod!("chip::EndpointId")
+    generate_pod!("chip::ClusterId")
+    generate_pod!("chip::CommandId")
+    generate_pod!("chip::DataVersion")
+    generate_pod!("EmberAfStatus")
+    generate_pod!("EmberAfDeviceType")
+    generate_pod!("EmberAfEndpointType")
+    generate!("EmberAfAttributeMetadata")
+    generate_pod!("EmberAfClusterMask")
+    generate!("EmberAfGenericClusterFunction")
+    generate_pod!("EmberAfCluster")
+    generate!("emberAfEndpointFromIndex")
+    generate!("emberAfFixedEndpointCount")
+    generate!("emberAfEndpointEnableDisable")
+    generate!("emberAfSetDeviceTypeList")
+    generate!("emberAfSetDynamicEndpoint")
+    generate!("emberAfClearDynamicEndpoint")
 
     generate!("singleton_raw::server")
     generate!("singleton_raw::configuration_mgr")

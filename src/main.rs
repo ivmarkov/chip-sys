@@ -45,6 +45,87 @@ pub fn main() {
 
     singleton_raw::print_onboarding_codes();
 
+    /////////////////
+
+    // (taken from chip-devices.xml)
+    const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
+    // (taken from lo-devices.xml)
+    const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
+
+    // (taken from chip-devices.xml)
+    const DEVICE_TYPE_ROOT_NODE: u16 = 0x0016;
+    // (taken from chip-devices.xml)
+    const DEVICE_TYPE_BRIDGE: u16 = 0x000e;
+
+    // Device Version for dynamic endpoints:
+    const DEVICE_VERSION_DEFAULT: u8 = 1;
+
+    static ROOT_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+        deviceId: DEVICE_TYPE_ROOT_NODE,
+        deviceVersion: DEVICE_VERSION_DEFAULT,
+    }];
+
+    static AGGREGATE_NODE_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+        deviceId: DEVICE_TYPE_BRIDGE,
+        deviceVersion: DEVICE_VERSION_DEFAULT,
+    }];
+
+    static BRIDGED_ON_OFF_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[
+        EmberAfDeviceType {
+            deviceId: DEVICE_TYPE_LO_ON_OFF_LIGHT,
+            deviceVersion: DEVICE_VERSION_DEFAULT,
+        },
+        EmberAfDeviceType {
+            deviceId: DEVICE_TYPE_BRIDGED_NODE,
+            deviceVersion: DEVICE_VERSION_DEFAULT,
+        },
+    ];
+
+    static BRIDGED_LIGHT_CLUSTERS: &'static [EmberAfCluster] = &[EmberAfCluster {}];
+
+    // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedLightClusters)
+    // DECLARE_DYNAMIC_CLUSTER(ZCL_ON_OFF_CLUSTER_ID, onOffAttrs, onOffIncomingCommands, nullptr),
+    //     DECLARE_DYNAMIC_CLUSTER(ZCL_DESCRIPTOR_CLUSTER_ID, descriptorAttrs, nullptr, nullptr),
+    //     DECLARE_DYNAMIC_CLUSTER(ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID, bridgedDeviceBasicAttrs, nullptr,
+    // nullptr) DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+    // Set starting endpoint id where dynamic endpoints will be assigned, which
+    // will be the next consecutive endpoint id after the last fixed endpoint.
+    let first_endpoint_id = emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1) + 1;
+
+    // Disable last fixed endpoint, which is used as a placeholder for all of the
+    // supported clusters so that ZAP will generated the requisite code.
+    emberAfEndpointEnableDisable(
+        emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1),
+        false,
+    );
+
+    // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
+    unsafe {
+        glue_emberAfSetDeviceTypeList(0, ROOT_DEVICE_TYPES.as_ptr(), ROOT_DEVICE_TYPES.len());
+    }
+    unsafe {
+        glue_emberAfSetDeviceTypeList(
+            1,
+            AGGREGATE_NODE_DEVICE_TYPES.as_ptr(),
+            AGGREGATE_NODE_DEVICE_TYPES.len(),
+        );
+    }
+
+    // unsafe {
+    //     glue_emberAfSetDynamicEndpoint(
+    //         0,
+    //         first_endpoint_id,
+    //         ep,
+    //         dataVersionStorage,
+    //         BRIDGED_ON_OFF_DEVICE_TYPES.as_ptr(),
+    //         BRIDGED_ON_OFF_DEVICE_TYPES.len(),
+    //         1,
+    //     );
+    // }
+
+    /////////////////
+
     println!("Spin loop");
 
     platform_mgr.as_mut().RunEventLoop();
@@ -147,4 +228,20 @@ extern "C" {
     fn glue_MutableByteSpan_data(span: *mut chip::MutableByteSpan) -> *mut u8;
     fn glue_MutableByteSpan_size(span: *mut chip::MutableByteSpan) -> usize;
     fn glue_MutableByteSpan_reduce_size(span: *mut chip::MutableByteSpan, size: usize);
+
+    fn glue_emberAfSetDeviceTypeList(
+        endpoint: chip::EndpointId,
+        device_type_list: *const EmberAfDeviceType,
+        device_type_list_len: usize,
+    ) -> u32;
+    fn glue_emberAfSetDynamicEndpoint(
+        index: u16,
+        id: chip::EndpointId,
+        ep: *const EmberAfEndpointType,
+        data_version_storage: *const chip::DataVersion,
+        data_version_storage_len: usize,
+        device_type_list: *const EmberAfDeviceType,
+        device_type_list_len: usize,
+        parentEndpointId: chip::EndpointId,
+    ) -> EmberAfStatus;
 }

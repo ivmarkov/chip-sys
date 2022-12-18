@@ -41,6 +41,7 @@ fn main() -> miette::Result<()> {
         PathBuf::from(BUILD_OUT).join("gen/include"),
         // Generated ZAP includes
         sdk.join("zzz_generated/app-common"),
+        sdk.join("zzz_generated/bridge-app"),
         PathBuf::from("lib/include"),
         // SDK - Linux standalone (TODO: needs config)
         sdk.join("config/standalone"),

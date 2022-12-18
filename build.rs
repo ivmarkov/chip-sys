@@ -1,4 +1,13 @@
-use std::path::PathBuf;
+use std::{
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
+
+use anyhow::{Context, Result};
+use embuild::cmd;
+use tempfile::NamedTempFile;
+
+const WORKSPACE_INSTALL_DIR: &str = ".embuild/chip";
 
 static TYPES: &'static [&str] = &[
     "chip::ChipError",
@@ -45,18 +54,44 @@ static FUNCTIONS: &'static [&str] = &[
     "emberAfClearDynamicEndpoint",
 ];
 
-fn main() -> anyhow::Result<()> {
-    const CHIP_SDK: &str = "/home/ivan/dev/v1/connectedhomeip";
-    const BUILD_OUT: &str = "lib/out/host";
+fn main() -> Result<()> {
+    build()
+}
 
-    let sdk = PathBuf::from(CHIP_SDK);
+fn build() -> Result<()> {
+    let sdk = PathBuf::from(
+        std::env::var("CHIP_ROOT").context("Failed to find `CHIP_ROOT` environment variable")?,
+    );
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR")?);
+    let chip_out_dir = out_dir.join("chip");
 
-    // Libs
+    build_chip(&sdk, &chip_out_dir)?;
+    let includes = emit_chip_libs(&sdk, &chip_out_dir)?;
 
-    println!("cargo:rustc-link-search={}", "lib/out/host");
+    gen_bindings(&includes, &out_dir)?;
 
+    Ok(())
+}
+
+fn build_chip(sdk: &Path, chip_out_dir: &Path) -> Result<()> {
+    let lib = PathBuf::from("lib");
+
+    let sdkd = sdk.display();
+    let libd = lib.display();
+    let chip_out_dird = chip_out_dir.display();
+
+    let mut script = NamedTempFile::new()?;
+    write!(&mut script, ". {sdkd}/scripts/activate.sh; cd {libd}; gn gen {chip_out_dird}; ninja -C {chip_out_dird}; cd ..")?;
+    script.flush()?;
+
+    cmd!("bash", script.path()).run()?;
+
+    Ok(())
+}
+
+fn emit_chip_libs(sdk: &Path, chip_out_dir: &Path) -> Result<Vec<PathBuf>> {
+    println!("cargo:rustc-link-search={}", chip_out_dir.display());
     println!("cargo:rustc-link-lib=CHIPALL");
-
     println!("cargo:rustc-link-lib=stdc++");
 
     // TODO: Linux-specific
@@ -82,7 +117,7 @@ fn main() -> anyhow::Result<()> {
         // Ours
         PathBuf::from("src/include"),
         // Generated
-        PathBuf::from(BUILD_OUT).join("gen/include"),
+        PathBuf::from(chip_out_dir).join("gen/include"),
         // Generated ZAP includes
         sdk.join("zzz_generated/app-common"),
         sdk.join("zzz_generated/bridge-app"),
@@ -103,6 +138,10 @@ fn main() -> anyhow::Result<()> {
     .chain(gio.include_paths.into_iter())
     .collect::<Vec<_>>();
 
+    Ok(includes)
+}
+
+fn gen_bindings(includes: &[impl AsRef<Path>], out_dir: &Path) -> Result<()> {
     let header = "src/include/bindings.h";
 
     let mut bindgen = bindgen::Builder::default()
@@ -128,13 +167,13 @@ fn main() -> anyhow::Result<()> {
         bindgen = bindgen.allowlist_function(function);
     }
 
-    for include in &includes {
-        bindgen = bindgen.clang_arg(format!("-I{}", include.display()));
+    for include in includes {
+        bindgen = bindgen.clang_arg(format!("-I{}", include.as_ref().display()));
     }
 
     let bindings = bindgen.generate()?;
 
-    let bindings_file = PathBuf::from(std::env::var("OUT_DIR")?).join("bindings.rs");
+    let bindings_file = out_dir.join("bindings.rs");
 
     bindings.write_to_file(&bindings_file)?;
 

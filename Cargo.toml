@@ -1,14 +1,10 @@
 [package]
 name = "connectedhomeip-sys"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
-[dependencies]
-autocxx = "0.23.1"
-cxx = "1.0.78"
-moveit = "0.5.1"
-
 [build-dependencies]
-autocxx-build = "0.23.1"
+anyhow = "1"
 pkg-config = "0.3.26"
-miette = { version = "5", features = ["fancy"] } # optional but gives nicer error messages!
+bindgen = "0.63"
+#embuild = "0.31"

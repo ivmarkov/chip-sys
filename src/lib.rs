@@ -1,110 +1,16 @@
-// TODO: autocxx is not no_std compatible yet #![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
-use core::fmt::Display;
-use std::error::Error; // TODO: Replace with core::error::Error in 1.66
+pub use bindings::*;
+pub use error::*;
 
-use autocxx::prelude::*; // use all the main autocxx functions
+mod error;
 
-include_cpp! {
-    #include "build-config.h"
-    #include "singleton.h"
-
-    #include "lib/core/CHIPError.h"
-    #include "credentials/examples/DeviceAttestationCredsExample.h"
-    #include "platform/ConfigurationManager.h"
-    #include "platform/PlatformManager.h"
-    #include "app/InteractionModelEngine.h"
-    #include "app/server/Dnssd.h"
-    #include "app/server/Server.h"
-    #include "app/server/OnboardingCodesUtil.h"
-    #include "app/util/af.h"
-    #include "app/util/attribute-storage.h"
-
-    safety!(unsafe)
-
-    generate!("chip::app::CommandHandler")
-    generate!("chip::app::ConcreteCommandPath")
-    generate!("chip::app::Clusters::Actions::Commands::InstantAction::DecodableType")
-    generate!("chip::Credentials::SetDeviceAttestationCredentialsProvider")
-    generate!("chip::Credentials::Examples::GetExampleDACProvider")
-    generate!("chip::ChipError")
-    generate!("chip::Span")
-    generate!("chip::MutableByteSpan")
-    generate!("chip::Platform::MemoryInit")
-    generate!("chip::DeviceLayer::ConfigurationManager")
-    generate!("chip::DeviceLayer::PlatformManager")
-    generate!("chip::RendezvousInformationFlag")
-    //generate!("chip::RendezvousInformationFlags")
-    generate!("chip::Server")
-    generate!("chip::ServerInitParams")
-    generate!("chip::CommonCaseDeviceServerInitParams")
-    //generate!("PrintOnboardingCodes")
-    //generate!("PrintQrCodeURL")
-
-    generate_pod!("chip::EndpointId")
-    generate_pod!("chip::ClusterId")
-    generate_pod!("chip::CommandId")
-    generate_pod!("chip::DataVersion")
-    generate_pod!("EmberAfStatus")
-    generate_pod!("EmberAfDeviceType")
-    generate_pod!("EmberAfEndpointType")
-    generate!("EmberAfAttributeMetadata")
-    generate_pod!("EmberAfClusterMask")
-    generate!("EmberAfGenericClusterFunction")
-    generate_pod!("EmberAfCluster")
-    generate!("emberAfEndpointFromIndex")
-    generate!("emberAfFixedEndpointCount")
-    generate!("emberAfEndpointEnableDisable")
-    generate!("emberAfSetDeviceTypeList")
-    generate!("emberAfSetDynamicEndpoint")
-    generate!("emberAfClearDynamicEndpoint")
-
-    generate!("singleton_raw::server")
-    generate!("singleton_raw::configuration_mgr")
-    generate!("singleton_raw::platform_mgr")
-    generate!("singleton_raw::print_onboarding_codes")
+#[allow(clippy::all)]
+#[allow(non_upper_case_globals)]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+#[allow(rustdoc::all)]
+#[allow(improper_ctypes)] // TODO: For now, as 5.0 spits out tons of these
+mod bindings {
+    include!(env!("GENERATED_BINDINGS_FILE"));
 }
-
-pub use ffi::*;
-
-#[derive(Debug)]
-pub struct ChipError(u32);
-
-impl ChipError {
-    pub const fn new(code: u32) -> Self {
-        Self(code)
-    }
-
-    pub fn code(&self) -> u32 {
-        self.0
-    }
-}
-
-impl Display for ChipError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "CHIP ERROR: {}", self.0)
-    }
-}
-
-impl Error for ChipError {}
-
-#[macro_export]
-macro_rules! chkerr {
-    ($err: expr) => {{
-        moveit::moveit! {
-            let mut err = $err;
-        }
-
-        let code = err.as_mut().AsInteger();
-
-        if code == 0 {
-            Ok(())
-        } else {
-            Err(ChipError::new(code))
-        }
-    }};
-}
-
-// pub mod singleton {
-//     pub fn platform_mgr() -> &'static mut chip::DeviceLayer::
-// }

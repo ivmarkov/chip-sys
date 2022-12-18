@@ -1,16 +1,11 @@
-use std::pin::Pin;
-
-use autocxx::WithinUniquePtr;
-
 use connectedhomeip_sys::*;
 
-pub fn main() {
-    chkerr!(unsafe { chip::Platform::MemoryInit(core::ptr::null_mut(), 0) }).unwrap();
+pub fn main() -> Result<(), ChipError> {
+    chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
 
-    let mut platform_mgr =
-        unsafe { Pin::new_unchecked(singleton_raw::platform_mgr().as_mut().unwrap()) };
+    let platform_mgr = unsafe { chip_DeviceLayer_PlatformMgr().as_mut() }.unwrap();
 
-    chkerr!(platform_mgr.as_mut().InitChipStack()).unwrap();
+    chip!(unsafe { platform_mgr.InitChipStack() })?;
 
     println!("Initialized");
 
@@ -19,125 +14,132 @@ pub fn main() {
     }
 
     unsafe {
-        chip::Credentials::SetDeviceAttestationCredentialsProvider(
-            chip::Credentials::Examples::GetExampleDACProvider(),
+        chip_Credentials_SetDeviceAttestationCredentialsProvider(
+            chip_Credentials_Examples_GetExampleDACProvider(),
         );
     }
 
-    let mut init_params = chip::CommonCaseDeviceServerInitParams::new().within_unique_ptr();
+    let init_params = unsafe { glue_chip_CommonCaseDeviceServerInitParams().as_mut() }.unwrap();
 
     // Init Data Model and CHIP App Server
-    chkerr!(init_params
-        .pin_mut()
-        .InitializeStaticResourcesBeforeServerInit())
-    .unwrap();
+    chip!(unsafe {
+        chip_CommonCaseDeviceServerInitParams_InitializeStaticResourcesBeforeServerInit(
+            init_params as *mut _ as *mut _,
+        )
+    })?;
 
-    let mut server = unsafe { Pin::new_unchecked(singleton_raw::server().as_mut().unwrap()) };
+    let server = unsafe { chip_Server_GetInstance().as_mut() }.unwrap();
 
-    chkerr!(server.as_mut().Init(init_params.as_ref().unwrap().as_ref())).unwrap();
+    chip!(unsafe { server.Init(init_params as *const _ as *const _) })?;
 
-    let mut configuration_mgr =
-        unsafe { Pin::new_unchecked(singleton_raw::configuration_mgr().as_mut().unwrap()) };
+    let configuration_mgr = unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap();
 
-    configuration_mgr.as_mut().LogDeviceConfig();
+    //configuration_mgr.LogDeviceConfig();
 
-    //PrintOnboardingCodes(chip::RendezvousInformationFlag(chip::RendezvousInformationFlag::kBLE));
-
-    singleton_raw::print_onboarding_codes();
-
-    /////////////////
-
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
-    // (taken from lo-devices.xml)
-    const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
-
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_ROOT_NODE: u16 = 0x0016;
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_BRIDGE: u16 = 0x000e;
-
-    // Device Version for dynamic endpoints:
-    const DEVICE_VERSION_DEFAULT: u8 = 1;
-
-    static ROOT_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_ROOT_NODE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
-    static AGGREGATE_NODE_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_BRIDGE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
-    static BRIDGED_ON_OFF_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[
-        EmberAfDeviceType {
-            deviceId: DEVICE_TYPE_LO_ON_OFF_LIGHT,
-            deviceVersion: DEVICE_VERSION_DEFAULT,
-        },
-        EmberAfDeviceType {
-            deviceId: DEVICE_TYPE_BRIDGED_NODE,
-            deviceVersion: DEVICE_VERSION_DEFAULT,
-        },
-    ];
-
-    static BRIDGED_LIGHT_CLUSTERS: &'static [EmberAfCluster] = &[EmberAfCluster {}];
-
-    // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedLightClusters)
-    // DECLARE_DYNAMIC_CLUSTER(ZCL_ON_OFF_CLUSTER_ID, onOffAttrs, onOffIncomingCommands, nullptr),
-    //     DECLARE_DYNAMIC_CLUSTER(ZCL_DESCRIPTOR_CLUSTER_ID, descriptorAttrs, nullptr, nullptr),
-    //     DECLARE_DYNAMIC_CLUSTER(ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID, bridgedDeviceBasicAttrs, nullptr,
-    // nullptr) DECLARE_DYNAMIC_CLUSTER_LIST_END;
-
-    // Set starting endpoint id where dynamic endpoints will be assigned, which
-    // will be the next consecutive endpoint id after the last fixed endpoint.
-    let first_endpoint_id = emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1) + 1;
-
-    // Disable last fixed endpoint, which is used as a placeholder for all of the
-    // supported clusters so that ZAP will generated the requisite code.
-    emberAfEndpointEnableDisable(
-        emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1),
-        false,
-    );
-
-    // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
     unsafe {
-        glue_emberAfSetDeviceTypeList(0, ROOT_DEVICE_TYPES.as_ptr(), ROOT_DEVICE_TYPES.len());
-    }
-    unsafe {
-        glue_emberAfSetDeviceTypeList(
-            1,
-            AGGREGATE_NODE_DEVICE_TYPES.as_ptr(),
-            AGGREGATE_NODE_DEVICE_TYPES.len(),
-        );
+        PrintOnboardingCodes(chip_RendezvousInformationFlags {
+            mValue: chip_RendezvousInformationFlag_kOnNetwork,
+            _phantom_0: core::marker::PhantomData,
+        });
     }
 
+    // /////////////////
+
+    // // (taken from chip-devices.xml)
+    // const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
+    // // (taken from lo-devices.xml)
+    // const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
+
+    // // (taken from chip-devices.xml)
+    // const DEVICE_TYPE_ROOT_NODE: u16 = 0x0016;
+    // // (taken from chip-devices.xml)
+    // const DEVICE_TYPE_BRIDGE: u16 = 0x000e;
+
+    // // Device Version for dynamic endpoints:
+    // const DEVICE_VERSION_DEFAULT: u8 = 1;
+
+    // static ROOT_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+    //     deviceId: DEVICE_TYPE_ROOT_NODE,
+    //     deviceVersion: DEVICE_VERSION_DEFAULT,
+    // }];
+
+    // static AGGREGATE_NODE_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+    //     deviceId: DEVICE_TYPE_BRIDGE,
+    //     deviceVersion: DEVICE_VERSION_DEFAULT,
+    // }];
+
+    // static BRIDGED_ON_OFF_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[
+    //     EmberAfDeviceType {
+    //         deviceId: DEVICE_TYPE_LO_ON_OFF_LIGHT,
+    //         deviceVersion: DEVICE_VERSION_DEFAULT,
+    //     },
+    //     EmberAfDeviceType {
+    //         deviceId: DEVICE_TYPE_BRIDGED_NODE,
+    //         deviceVersion: DEVICE_VERSION_DEFAULT,
+    //     },
+    // ];
+
+    // static BRIDGED_LIGHT_CLUSTERS: &'static [EmberAfCluster] = &[EmberAfCluster {}];
+
+    // // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedLightClusters)
+    // // DECLARE_DYNAMIC_CLUSTER(ZCL_ON_OFF_CLUSTER_ID, onOffAttrs, onOffIncomingCommands, nullptr),
+    // //     DECLARE_DYNAMIC_CLUSTER(ZCL_DESCRIPTOR_CLUSTER_ID, descriptorAttrs, nullptr, nullptr),
+    // //     DECLARE_DYNAMIC_CLUSTER(ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID, bridgedDeviceBasicAttrs, nullptr,
+    // // nullptr) DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+    // // Set starting endpoint id where dynamic endpoints will be assigned, which
+    // // will be the next consecutive endpoint id after the last fixed endpoint.
+    // let first_endpoint_id = emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1) + 1;
+
+    // // Disable last fixed endpoint, which is used as a placeholder for all of the
+    // // supported clusters so that ZAP will generated the requisite code.
+    // emberAfEndpointEnableDisable(
+    //     emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1),
+    //     false,
+    // );
+
+    // // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
     // unsafe {
-    //     glue_emberAfSetDynamicEndpoint(
-    //         0,
-    //         first_endpoint_id,
-    //         ep,
-    //         dataVersionStorage,
-    //         BRIDGED_ON_OFF_DEVICE_TYPES.as_ptr(),
-    //         BRIDGED_ON_OFF_DEVICE_TYPES.len(),
+    //     glue_emberAfSetDeviceTypeList(0, ROOT_DEVICE_TYPES.as_ptr(), ROOT_DEVICE_TYPES.len());
+    // }
+    // unsafe {
+    //     glue_emberAfSetDeviceTypeList(
     //         1,
+    //         AGGREGATE_NODE_DEVICE_TYPES.as_ptr(),
+    //         AGGREGATE_NODE_DEVICE_TYPES.len(),
     //     );
     // }
 
-    /////////////////
+    // // unsafe {
+    // //     glue_emberAfSetDynamicEndpoint(
+    // //         0,
+    // //         first_endpoint_id,
+    // //         ep,
+    // //         dataVersionStorage,
+    // //         BRIDGED_ON_OFF_DEVICE_TYPES.as_ptr(),
+    // //         BRIDGED_ON_OFF_DEVICE_TYPES.len(),
+    // //         1,
+    // //     );
+    // // }
+
+    // /////////////////
 
     println!("Spin loop");
 
-    platform_mgr.as_mut().RunEventLoop();
+    unsafe {
+        platform_mgr.RunEventLoop();
+    }
 
     println!("Exiting");
+
+    Ok(())
 }
 
 #[no_mangle]
 extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
-    _command_obj: *mut chip::app::CommandHandler,
-    _command_path: *const chip::app::ConcreteCommandPath,
-    _command_data: *const chip::app::Clusters::Actions::Commands::InstantAction::DecodableType,
+    _command_obj: *mut chip_app_CommandHandler,
+    _command_path: *const chip_app_ConcreteCommandPath,
+    _command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
 ) -> bool {
     true
 }
@@ -165,7 +167,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pIterationCount(
 
 #[no_mangle]
 extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pSalt(
-    salt_buf: *mut chip::MutableByteSpan,
+    salt_buf: *mut chip_MutableByteSpan,
 ) -> u16 {
     static SALT: &'static [u8] = b"SPAKE2P Key Salt";
 
@@ -183,7 +185,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pSalt(
 
 #[no_mangle]
 extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pVerifier(
-    verifier_buf: *mut chip::MutableByteSpan,
+    verifier_buf: *mut chip_MutableByteSpan,
     out_verifier_len: *mut usize,
 ) -> u16 {
     static VERIFIER: &'static [u8] = &[
@@ -225,23 +227,25 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSetupPasscode(setup_passcode:
 extern "C" {
     fn glue_InitCommissionableDataProvider();
 
-    fn glue_MutableByteSpan_data(span: *mut chip::MutableByteSpan) -> *mut u8;
-    fn glue_MutableByteSpan_size(span: *mut chip::MutableByteSpan) -> usize;
-    fn glue_MutableByteSpan_reduce_size(span: *mut chip::MutableByteSpan, size: usize);
+    fn glue_MutableByteSpan_data(span: *mut chip_MutableByteSpan) -> *mut u8;
+    fn glue_MutableByteSpan_size(span: *mut chip_MutableByteSpan) -> usize;
+    fn glue_MutableByteSpan_reduce_size(span: *mut chip_MutableByteSpan, size: usize);
 
-    fn glue_emberAfSetDeviceTypeList(
-        endpoint: chip::EndpointId,
-        device_type_list: *const EmberAfDeviceType,
-        device_type_list_len: usize,
-    ) -> u32;
-    fn glue_emberAfSetDynamicEndpoint(
-        index: u16,
-        id: chip::EndpointId,
-        ep: *const EmberAfEndpointType,
-        data_version_storage: *const chip::DataVersion,
-        data_version_storage_len: usize,
-        device_type_list: *const EmberAfDeviceType,
-        device_type_list_len: usize,
-        parentEndpointId: chip::EndpointId,
-    ) -> EmberAfStatus;
+    fn glue_chip_CommonCaseDeviceServerInitParams() -> *mut chip_CommonCaseDeviceServerInitParams;
+
+    //     fn glue_emberAfSetDeviceTypeList(
+    //         endpoint: chip::EndpointId,
+    //         device_type_list: *const EmberAfDeviceType,
+    //         device_type_list_len: usize,
+    //     ) -> u32;
+    //     fn glue_emberAfSetDynamicEndpoint(
+    //         index: u16,
+    //         id: chip::EndpointId,
+    //         ep: *const EmberAfEndpointType,
+    //         data_version_storage: *const chip::DataVersion,
+    //         data_version_storage_len: usize,
+    //         device_type_list: *const EmberAfDeviceType,
+    //         device_type_list_len: usize,
+    //         parentEndpointId: chip::EndpointId,
+    //     ) -> EmberAfStatus;
 }

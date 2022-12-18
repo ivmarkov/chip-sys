@@ -16,7 +16,7 @@ static_library("chip_all") {
     "${chip_root}/src/lib",
   ]
 
-  cflags = [ "-Wconversion" ]
+  cflags = [ "-Wconversion", "-fkeep-inline-functions" ]
 
   include_dirs = [ "include" ]
 

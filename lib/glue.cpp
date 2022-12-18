@@ -1,3 +1,4 @@
+#include <app/server/Server.h>
 #include <app/util/af.h>
 #include <app/util/attribute-storage.h>
 #include <app/InteractionModelEngine.h>
@@ -66,32 +67,11 @@ public:
     }
 };
 
-CommissionableDataProvider glue_CommissionableDataProvider;
+CommissionableDataProvider glueg_CommissionableDataProvider;
+chip::CommonCaseDeviceServerInitParams glueg_CommonCaseDeviceServerInitParams;
 
 extern "C" void glue_InitCommissionableDataProvider() {
-    SetCommissionableDataProvider(&glue_CommissionableDataProvider);
-}
-
-extern "C" uint32_t glue_emberAfSetDeviceTypeList(EndpointId endpoint, const EmberAfDeviceType* deviceTypeList, size_t deviceTypeListLen) {
-    return emberAfSetDeviceTypeList(endpoint, chip::Span<const EmberAfDeviceType>(deviceTypeList, deviceTypeListLen)).AsInteger();
-}
-
-extern "C" EmberAfStatus glue_emberAfSetDynamicEndpoint(
-    uint16_t index, 
-    chip::EndpointId id, 
-    const EmberAfEndpointType* ep,
-    const chip::DataVersion* dataVersionStorage,
-    size_t dataVersionStorageLen,
-    const EmberAfDeviceType* deviceTypeList,
-    size_t deviceTypeListLen,
-    chip::EndpointId parentEndpointId) {
-    return emberAfSetDynamicEndpoint(
-        index, 
-        id, 
-        ep, 
-        chip::Span<const chip::DataVersion>(dataVersionStorage, dataVersionStorageLen),
-        chip::span<const EmberAfDeviceType>(deviceTypeList, deviceTypeListLen),
-        parentEndpointId);
+    SetCommissionableDataProvider(&glueg_CommissionableDataProvider);
 }
 
 extern "C" uint8_t* glue_MutableByteSpan_data(MutableByteSpan* span) {
@@ -104,4 +84,9 @@ extern "C" size_t glue_MutableByteSpan_size(MutableByteSpan* span) {
 
 extern "C" void glue_MutableByteSpan_reduce_size(MutableByteSpan* span, size_t size) {
     span->reduce_size(size);
+}
+
+
+extern "C" chip::CommonCaseDeviceServerInitParams* glue_chip_CommonCaseDeviceServerInitParams() {
+    return &glueg_CommonCaseDeviceServerInitParams;
 }

@@ -12,7 +12,7 @@ readme = "README.md"
 links = "chip"
 
 [patch.crates-io]
-embuild = { path = "../embuild" }
+embuild = { git = "https://github.com/esp-rs/embuild" }
 
 [build-dependencies]
 anyhow = "1"

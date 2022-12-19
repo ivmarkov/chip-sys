@@ -19,6 +19,7 @@ const CHIP_MANAGED_REPO_DIR_BASE: &str = "repos";
 
 const WORKSPACE_INSTALL_DIR: &str = ".embuild/chip";
 
+// TODO: Parameterize
 const LINUX: bool = true;
 const BLE: bool = true;
 

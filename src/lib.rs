@@ -3,6 +3,7 @@
 pub use bindings::*;
 pub use error::*;
 
+pub mod callbacks;
 mod error;
 
 #[allow(clippy::all)]

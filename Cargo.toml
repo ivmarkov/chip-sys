@@ -2,6 +2,14 @@
 name = "connectedhomeip-sys"
 version = "0.2.0"
 edition = "2021"
+authors = ["Ivan Markov <ivan.markov@gmail.com>"]
+categories = ["embedded", "hardware-support"]
+keywords = ["sys", "matter", "connectedhomeip", "chip"]
+description = "Bindings for project CHIP (Matter C++ SDK)"
+repository = "https://github.com/ivmarkov/chip-sys"
+license = "Proprietary"
+readme = "README.md"
+links = "chip"
 
 [patch.crates-io]
 embuild = { path = "../embuild" }

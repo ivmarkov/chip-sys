@@ -10,7 +10,7 @@ use crate::CHIP_ERROR;
 pub struct ChipError(CHIP_ERROR);
 
 impl ChipError {
-    /// Wrap an [`esp_err_t`], return [`Some`] if `error` is **not** [0].
+    /// Wrap a [CHIP_ERROR], return [`Some`] if `error` is **not** [0].
     pub const fn from(error: CHIP_ERROR) -> Option<Self> {
         if error.mError == 0 {
             None
@@ -35,6 +35,21 @@ impl ChipError {
     ///
     /// If `error` equals to [0] return [`Ok`], otherwise return [`Err`] with the
     /// wrapped [`CHIP_ERROR`].
+    pub fn convert_code(error: u32) -> Result<(), Self> {
+        Self::check_and_return(
+            CHIP_ERROR {
+                mError: error,
+                mFile: core::ptr::null(),
+                mLine: 0,
+            },
+            (),
+        )
+    }
+
+    /// Convert `error` into a [`Result`] with `Ok(())` if not error occurred..
+    ///
+    /// If `error` equals to [0] return [`Ok`], otherwise return [`Err`] with the
+    /// wrapped [`CHIP_ERROR`].
     pub fn convert(error: CHIP_ERROR) -> Result<(), Self> {
         Self::check_and_return(error, ())
     }
@@ -48,6 +63,17 @@ impl ChipError {
     /// Get the wrapped [`CHIP_ERROR`].
     pub fn code(&self) -> u32 {
         unsafe { self.0.AsInteger() }
+    }
+
+    pub fn to_raw(result: Result<(), ChipError>) -> CHIP_ERROR {
+        match result {
+            Result::Ok(()) => CHIP_ERROR {
+                mError: 0,
+                mFile: core::ptr::null(),
+                mLine: 0,
+            },
+            Result::Err(err) => err.0,
+        }
     }
 }
 

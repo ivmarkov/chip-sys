@@ -25,6 +25,7 @@
 #include "app/server/OnboardingCodesUtil.h"
 #include "app/util/af.h"
 #include "app/util/attribute-storage.h"
+#include "glue.h"
 
 // overrides CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT in CHIPProjectConfig
 //#define CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT 16

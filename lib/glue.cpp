@@ -4,8 +4,7 @@
 #include <app/InteractionModelEngine.h>
 #include <lib/core/CHIPError.h>
 #include <platform/CommissionableDataProvider.h>
-
-using namespace ::chip;
+#include "glue.h"
 
 extern "C" bool gluecb_emberAfActionsClusterInstantActionCallback(
     app::CommandHandler* commandObj, 
@@ -15,11 +14,11 @@ extern "C" bool gluecb_emberAfActionsClusterInstantActionCallback(
 
 extern "C" bool gluecb_MatterActionsPluginServerInitCallback();
 
-extern "C" uint16_t gluecb_CommissionableDataProvider_GetSetupDiscriminator(uint16_t* setupDiscriminator);
-extern "C" uint16_t gluecb_CommissionableDataProvider_GetSpake2pIterationCount(uint32_t* iterationCount);
-extern "C" uint16_t gluecb_CommissionableDataProvider_GetSpake2pSalt(MutableByteSpan* saltBuf);
-extern "C" uint16_t gluecb_CommissionableDataProvider_GetSpake2pVerifier(MutableByteSpan* verifierBuf, size_t* outVerifierLen);
-extern "C" uint16_t gluecb_CommissionableDataProvider_GetSetupPasscode(uint32_t* setupPasscode);
+extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSetupDiscriminator(uint16_t* setupDiscriminator);
+extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSpake2pIterationCount(uint32_t* iterationCount);
+extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSpake2pSalt(MutableByteSpan* saltBuf);
+extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSpake2pVerifier(MutableByteSpan* verifierBuf, size_t* outVerifierLen);
+extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSetupPasscode(uint32_t* setupPasscode);
 
 bool emberAfActionsClusterInstantActionCallback(
     app::CommandHandler* commandObj, 
@@ -33,60 +32,51 @@ void MatterActionsPluginServerInitCallback(void) {
     gluecb_MatterActionsPluginServerInitCallback();
 }
 
-class CommissionableDataProvider: public DeviceLayer::CommissionableDataProvider {
-public:
-    CommissionableDataProvider() {}
-    virtual ~CommissionableDataProvider() {}
+namespace glue {
+    using namespace ::chip;
 
-    CHIP_ERROR GetSetupDiscriminator(uint16_t& setupDiscriminator) override {
-        return ChipError(gluecb_CommissionableDataProvider_GetSetupDiscriminator(&setupDiscriminator));
+    class CommissionableDataProvider: public DeviceLayer::CommissionableDataProvider {
+    public:
+        CommissionableDataProvider() {}
+        virtual ~CommissionableDataProvider() {}
+
+        CHIP_ERROR GetSetupDiscriminator(uint16_t& setupDiscriminator) override {
+            return gluecb_CommissionableDataProvider_GetSetupDiscriminator(&setupDiscriminator);
+        }
+
+        CHIP_ERROR SetSetupDiscriminator(uint16_t setupDiscriminator) override {
+            return CHIP_ERROR_NOT_IMPLEMENTED;
+        }
+
+        CHIP_ERROR GetSpake2pIterationCount(uint32_t& iterationCount) override {
+            return gluecb_CommissionableDataProvider_GetSpake2pIterationCount(&iterationCount);
+        }
+
+        CHIP_ERROR GetSpake2pSalt(MutableByteSpan& saltBuf) override {
+            return gluecb_CommissionableDataProvider_GetSpake2pSalt(&saltBuf);
+        }
+
+        CHIP_ERROR GetSpake2pVerifier(MutableByteSpan& verifierBuf, size_t& outVerifierLen) override {
+            return gluecb_CommissionableDataProvider_GetSpake2pVerifier(&verifierBuf, &outVerifierLen);
+        }
+
+        CHIP_ERROR GetSetupPasscode(uint32_t& setupPasscode) override {
+            return gluecb_CommissionableDataProvider_GetSetupPasscode(&setupPasscode);
+        }
+
+        CHIP_ERROR SetSetupPasscode(uint32_t setupPasscode) override {
+            return CHIP_ERROR_NOT_IMPLEMENTED;
+        }
+    };
+
+    CommissionableDataProvider glueg_CommissionableDataProvider;
+    chip::CommonCaseDeviceServerInitParams glueg_CommonCaseDeviceServerInitParams;
+
+    void Initialize() {
+        SetCommissionableDataProvider(&glueg_CommissionableDataProvider);
     }
 
-    CHIP_ERROR SetSetupDiscriminator(uint16_t setupDiscriminator) override {
-        return CHIP_ERROR_NOT_IMPLEMENTED;
+    chip::CommonCaseDeviceServerInitParams* CommonCaseDeviceServerInitParams() {
+        return &glueg_CommonCaseDeviceServerInitParams;
     }
-
-    CHIP_ERROR GetSpake2pIterationCount(uint32_t& iterationCount) override {
-        return ChipError(gluecb_CommissionableDataProvider_GetSpake2pIterationCount(&iterationCount));
-    }
-
-    CHIP_ERROR GetSpake2pSalt(MutableByteSpan& saltBuf) override {
-        return ChipError(gluecb_CommissionableDataProvider_GetSpake2pSalt(&saltBuf));
-    }
-
-    CHIP_ERROR GetSpake2pVerifier(MutableByteSpan& verifierBuf, size_t& outVerifierLen) override {
-        return ChipError(gluecb_CommissionableDataProvider_GetSpake2pVerifier(&verifierBuf, &outVerifierLen));
-    }
-
-    CHIP_ERROR GetSetupPasscode(uint32_t& setupPasscode) override {
-        return ChipError(gluecb_CommissionableDataProvider_GetSetupPasscode(&setupPasscode));
-    }
-
-    CHIP_ERROR SetSetupPasscode(uint32_t setupPasscode) override {
-        return CHIP_ERROR_NOT_IMPLEMENTED;
-    }
-};
-
-CommissionableDataProvider glueg_CommissionableDataProvider;
-chip::CommonCaseDeviceServerInitParams glueg_CommonCaseDeviceServerInitParams;
-
-extern "C" void glue_InitCommissionableDataProvider() {
-    SetCommissionableDataProvider(&glueg_CommissionableDataProvider);
-}
-
-extern "C" uint8_t* glue_MutableByteSpan_data(MutableByteSpan* span) {
-    return span->data();
-}
-
-extern "C" size_t glue_MutableByteSpan_size(MutableByteSpan* span) {
-    return span->size();
-}
-
-extern "C" void glue_MutableByteSpan_reduce_size(MutableByteSpan* span, size_t size) {
-    span->reduce_size(size);
-}
-
-
-extern "C" chip::CommonCaseDeviceServerInitParams* glue_chip_CommonCaseDeviceServerInitParams() {
-    return &glueg_CommonCaseDeviceServerInitParams;
 }

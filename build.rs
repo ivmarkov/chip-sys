@@ -14,7 +14,7 @@ const CHIP_REPOSITORY: &str = "CHIP_REPOSITORY";
 const CHIP_VERSION: &str = "CHIP_VERSION";
 
 const CHIP_DEFAULT_REPOSITORY: &str = "https://github.com/project-chip/connectedhomeip";
-const CHIP_DEFAULT_VERSION: &str = "v1.0-branch";
+const CHIP_DEFAULT_VERSION: &str = "branch:v1.0-branch";
 const CHIP_MANAGED_REPO_DIR_BASE: &str = "repos";
 
 const WORKSPACE_INSTALL_DIR: &str = ".embuild/chip";
@@ -58,6 +58,8 @@ static TYPES: &'static [&str] = &[
 ];
 
 static FUNCTIONS: &'static [&str] = &[
+    "glue::Initialize",
+    "glue::CommonCaseDeviceServerInitParams",
     "chip::Platform::MemoryInit",
     "chip::Server::GetInstance",
     "chip::DeviceLayer::PlatformMgr",
@@ -80,7 +82,7 @@ fn main() -> Result<()> {
 fn build() -> Result<()> {
     let sdk = get_chip()?;
 
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR")?);
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR")?).canonicalize()?;
     let chip_out_dir = out_dir.join("chip");
 
     let sdk_repo = build_chip(&sdk, &chip_out_dir)?;
@@ -117,7 +119,7 @@ fn build() -> Result<()> {
 fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Repository> {
     let sdk_repo = match sdk {
         sdk::SdkOrigin::Managed(remote) => {
-            let sdks_root = PathBuf::from(WORKSPACE_INSTALL_DIR);
+            let sdks_root = PathBuf::from(WORKSPACE_INSTALL_DIR).canonicalize()?;
             fs::create_dir_all(&sdks_root)?;
 
             remote.open_or_clone(
@@ -130,16 +132,19 @@ fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Reposito
         sdk::SdkOrigin::Custom(repo) => repo.clone(),
     };
 
+    let sdk = sdk_repo.worktree().canonicalize()?;
+
     fs::create_dir_all(chip_out_dir)?;
 
-    let lib = PathBuf::from("lib");
+    let lib = PathBuf::from("lib").canonicalize()?;
 
-    let sdkd = sdk_repo.worktree().display();
+    let sdkd = sdk.display();
     let libd = lib.display();
     let chip_out_dird = chip_out_dir.display();
 
     let mut script = NamedTempFile::new()?;
-    write!(&mut script, ". {sdkd}/scripts/activate.sh; cd {libd}; export CHIP_PATH={sdkd}; gn gen {chip_out_dird}; ninja -C {chip_out_dird}; cd ..")?;
+
+    write!(&mut script, "export CHIP_PATH={sdkd}; . {sdkd}/scripts/activate.sh; cd {libd}; gn gen {chip_out_dird}; ninja -C {chip_out_dird}; cd ..")?;
     script.flush()?;
 
     cmd!("bash", script.path()).run()?;
@@ -196,6 +201,8 @@ fn get_chip() -> Result<sdk::SdkOrigin> {
     let sdk = if let Ok(sdk) = std::env::var(CHIP_PATH) {
         sdk::SdkOrigin::Custom(git::Repository::new(PathBuf::from(sdk)))
     } else {
+        //panic!();
+
         sdk::SdkOrigin::Managed(git::sdk::RemoteSdk {
             repo_url: std::env::var(CHIP_REPOSITORY).ok(),
             git_ref: git::Ref::parse(
@@ -208,12 +215,13 @@ fn get_chip() -> Result<sdk::SdkOrigin> {
 }
 
 fn get_chip_includes(sdk: &git::Repository, chip_out_dir: &Path) -> Result<Vec<PathBuf>> {
-    let sdk = sdk.worktree();
+    let sdk = sdk.worktree().canonicalize()?;
 
     let third_party = sdk.join("third_party");
 
     let includes = [
         // Ours
+        PathBuf::from("lib"),
         PathBuf::from("src/include"),
         // Generated
         PathBuf::from(chip_out_dir).join("gen/include"),

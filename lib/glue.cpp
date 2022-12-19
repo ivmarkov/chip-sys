@@ -6,6 +6,8 @@
 #include <platform/CommissionableDataProvider.h>
 #include "glue.h"
 
+using namespace ::chip;
+
 extern "C" bool gluecb_emberAfActionsClusterInstantActionCallback(
     app::CommandHandler* commandObj, 
     const app::ConcreteCommandPath* commandPath,

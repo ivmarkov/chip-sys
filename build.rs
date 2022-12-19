@@ -144,7 +144,7 @@ fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Reposito
 
     let mut script = NamedTempFile::new()?;
 
-    write!(&mut script, "export CHIP_PATH={sdkd}; . {sdkd}/scripts/activate.sh; cd {libd}; gn gen {chip_out_dird}; ninja -C {chip_out_dird}; cd ..")?;
+    write!(&mut script, "set -e; export CHIP_PATH={sdkd}; . {sdkd}/scripts/activate.sh; cd {libd}; gn gen {chip_out_dird}; ninja -C {chip_out_dird}; cd ..")?;
     script.flush()?;
 
     cmd!("bash", script.path()).run()?;

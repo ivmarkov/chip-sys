@@ -1,4 +1,4 @@
-use connectedhomeip_sys::*;
+use connectedhomeip_sys::{callbacks::TestComissionableDataProvider, *};
 
 pub fn main() -> Result<(), ChipError> {
     chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
@@ -11,6 +11,10 @@ pub fn main() -> Result<(), ChipError> {
 
     unsafe {
         glue_Initialize();
+    }
+
+    unsafe {
+        callbacks::set_comissionable_data_provider(TestComissionableDataProvider);
     }
 
     unsafe {

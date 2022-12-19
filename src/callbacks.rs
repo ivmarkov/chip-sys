@@ -29,6 +29,28 @@ pub trait ComissionableDataProvider {
     fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError>;
 }
 
+static mut EMBER_AF_INSTANT_ACTION: Option<Box<dyn EmberAfInstantAction>> = None;
+static mut ACTIONS_PLUGIN_SERVER_INIT: Option<Box<dyn ActionsPluginServerInit>> = None;
+static mut COMISSIONABLE_DATA_PROVIDER: Option<Box<dyn ComissionableDataProvider>> = None;
+
+pub unsafe fn set_instant_action(action: impl EmberAfInstantAction + 'static) {
+    unsafe {
+        EMBER_AF_INSTANT_ACTION = Some(Box::new(action));
+    }
+}
+
+pub unsafe fn set_plugin_server_init(init: impl ActionsPluginServerInit + 'static) {
+    unsafe {
+        ACTIONS_PLUGIN_SERVER_INIT = Some(Box::new(init));
+    }
+}
+
+pub unsafe fn set_comissionable_data_provider(provider: impl ComissionableDataProvider + 'static) {
+    unsafe {
+        COMISSIONABLE_DATA_PROVIDER = Some(Box::new(provider));
+    }
+}
+
 pub struct TestComissionableDataProvider;
 
 impl ComissionableDataProvider for TestComissionableDataProvider {
@@ -98,8 +120,6 @@ impl ComissionableDataProvider for TestComissionableDataProvider {
     }
 }
 
-static mut EMBER_AF_INSTANT_ACTION: Option<Box<dyn EmberAfInstantAction>> = None;
-
 #[no_mangle]
 extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
     command_obj: *mut chip_app_CommandHandler,
@@ -113,16 +133,12 @@ extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
     }
 }
 
-static mut ACTIONS_PLUGIN_SERVER_INIT: Option<Box<dyn ActionsPluginServerInit>> = None;
-
 #[no_mangle]
 extern "C" fn gluecb_MatterActionsPluginServerInitCallback() {
     if let Some(cb) = unsafe { &ACTIONS_PLUGIN_SERVER_INIT } {
         cb.init();
     }
 }
-
-static mut COMISSIONABLE_DATA_PROVIDER: Option<Box<dyn ComissionableDataProvider>> = None;
 
 #[no_mangle]
 extern "C" fn gluecb_CommissionableDataProvider_GetSetupDiscriminator(

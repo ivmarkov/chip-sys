@@ -29,7 +29,7 @@ const BLE_LINUX_LIBS: &[(&str, &str)] = &[
     ("gio-2.0", "2.0"),
 ];
 
-static TYPES: &'static [&str] = &[
+static TYPES: &[&str] = &[
     "chip::ChipError",
     "chip::Span",
     "chip::ByteSpan",
@@ -58,7 +58,7 @@ static TYPES: &'static [&str] = &[
     "EmberAfCluster",
 ];
 
-static FUNCTIONS: &'static [&str] = &[
+static FUNCTIONS: &[&str] = &[
     "glue::Initialize",
     "glue::CommonCaseDeviceServerInitParams",
     "chip::Platform::MemoryInit",

@@ -36,7 +36,7 @@ pub fn main() -> Result<(), ChipError> {
 
     chip!(unsafe { server.Init(init_params as *const _ as *const _) })?;
 
-    let configuration_mgr = unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap();
+    let _configuration_mgr = unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap();
 
     //configuration_mgr.LogDeviceConfig();
 
@@ -62,17 +62,17 @@ pub fn main() -> Result<(), ChipError> {
     // Device Version for dynamic endpoints:
     const DEVICE_VERSION_DEFAULT: u8 = 1;
 
-    static ROOT_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+    static ROOT_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
         deviceId: DEVICE_TYPE_ROOT_NODE,
         deviceVersion: DEVICE_VERSION_DEFAULT,
     }];
 
-    static AGGREGATE_NODE_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[EmberAfDeviceType {
+    static AGGREGATE_NODE_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
         deviceId: DEVICE_TYPE_BRIDGE,
         deviceVersion: DEVICE_VERSION_DEFAULT,
     }];
 
-    static BRIDGED_ON_OFF_DEVICE_TYPES: &'static [EmberAfDeviceType] = &[
+    static BRIDGED_ON_OFF_DEVICE_TYPES: &[EmberAfDeviceType] = &[
         EmberAfDeviceType {
             deviceId: DEVICE_TYPE_LO_ON_OFF_LIGHT,
             deviceVersion: DEVICE_VERSION_DEFAULT,
@@ -83,7 +83,7 @@ pub fn main() -> Result<(), ChipError> {
         },
     ];
 
-    static mut BRIDGED_LIGHT_CLUSTERS: &'static [EmberAfCluster] = &[
+    static mut BRIDGED_LIGHT_CLUSTERS: &[EmberAfCluster] = &[
         // EmberAfCluster {
 
         // }

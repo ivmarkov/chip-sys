@@ -5,7 +5,9 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 pub trait EmberAfInstantAction {
-    fn handle(
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn handle(
         &self,
         command_obj: *mut chip_app_CommandHandler,
         command_path: *const chip_app_ConcreteCommandPath,
@@ -18,33 +20,63 @@ pub trait ActionsPluginServerInit {
 }
 
 pub trait ComissionableDataProvider {
-    fn get_setup_discriminator(&self, setup_discriminator: *mut u16) -> Result<(), ChipError>;
-    fn get_spake2p_iteration_count(&self, iteration_count: *mut u32) -> Result<(), ChipError>;
-    fn get_spake2p_salt(&self, salt_buf: *mut chip_MutableByteSpan) -> Result<(), ChipError>;
-    fn get_spake2p_verifier(
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn get_setup_discriminator(
+        &self,
+        setup_discriminator: *mut u16,
+    ) -> Result<(), ChipError>;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn get_spake2p_iteration_count(
+        &self,
+        iteration_count: *mut u32,
+    ) -> Result<(), ChipError>;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn get_spake2p_salt(&self, salt_buf: *mut chip_MutableByteSpan)
+        -> Result<(), ChipError>;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn get_spake2p_verifier(
         &self,
         verifier_buf: *mut chip_MutableByteSpan,
         out_verifier_len: *mut usize,
     ) -> Result<(), ChipError>;
-    fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError>;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError>;
 }
 
 static mut EMBER_AF_INSTANT_ACTION: Option<Box<dyn EmberAfInstantAction>> = None;
 static mut ACTIONS_PLUGIN_SERVER_INIT: Option<Box<dyn ActionsPluginServerInit>> = None;
 static mut COMISSIONABLE_DATA_PROVIDER: Option<Box<dyn ComissionableDataProvider>> = None;
 
+/// # Safety
+///
+/// Call at the beginning of the program when only the main thread is alive.
 pub unsafe fn set_instant_action(action: impl EmberAfInstantAction + 'static) {
     unsafe {
         EMBER_AF_INSTANT_ACTION = Some(Box::new(action));
     }
 }
 
+/// # Safety
+///
+/// Call at the beginning of the program when only the main thread is alive.
 pub unsafe fn set_plugin_server_init(init: impl ActionsPluginServerInit + 'static) {
     unsafe {
         ACTIONS_PLUGIN_SERVER_INIT = Some(Box::new(init));
     }
 }
 
+/// # Safety
+///
+/// Call at the beginning of the program when only the main thread is alive.
 pub unsafe fn set_comissionable_data_provider(provider: impl ComissionableDataProvider + 'static) {
     unsafe {
         COMISSIONABLE_DATA_PROVIDER = Some(Box::new(provider));
@@ -54,22 +86,31 @@ pub unsafe fn set_comissionable_data_provider(provider: impl ComissionableDataPr
 pub struct TestComissionableDataProvider;
 
 impl ComissionableDataProvider for TestComissionableDataProvider {
-    fn get_setup_discriminator(&self, setup_discriminator: *mut u16) -> Result<(), ChipError> {
+    unsafe fn get_setup_discriminator(
+        &self,
+        setup_discriminator: *mut u16,
+    ) -> Result<(), ChipError> {
         *unsafe { setup_discriminator.as_mut() }.unwrap() = 3840;
 
         Ok(())
     }
 
-    fn get_spake2p_iteration_count(&self, iteration_count: *mut u32) -> Result<(), ChipError> {
+    unsafe fn get_spake2p_iteration_count(
+        &self,
+        iteration_count: *mut u32,
+    ) -> Result<(), ChipError> {
         *unsafe { iteration_count.as_mut() }.unwrap() = 1000;
 
         Ok(())
     }
 
-    fn get_spake2p_salt(&self, salt_buf: *mut chip_MutableByteSpan) -> Result<(), ChipError> {
+    unsafe fn get_spake2p_salt(
+        &self,
+        salt_buf: *mut chip_MutableByteSpan,
+    ) -> Result<(), ChipError> {
         let salt_buf = unsafe { salt_buf.as_mut() }.unwrap();
 
-        static SALT: &'static [u8] = b"SPAKE2P Key Salt";
+        static SALT: &[u8] = b"SPAKE2P Key Salt";
 
         //VerifyOrReturnError(saltBuf.size() >= kSpake2p_Max_PBKDF_Salt_Length, CHIP_ERROR_BUFFER_TOO_SMALL);
 
@@ -81,12 +122,12 @@ impl ComissionableDataProvider for TestComissionableDataProvider {
         Ok(())
     }
 
-    fn get_spake2p_verifier(
+    unsafe fn get_spake2p_verifier(
         &self,
         verifier_buf: *mut chip_MutableByteSpan,
         out_verifier_len: *mut usize,
     ) -> Result<(), ChipError> {
-        static VERIFIER: &'static [u8] = &[
+        static VERIFIER: &[u8] = &[
             0xB9, 0x61, 0x70, 0xAA, 0xE8, 0x03, 0x34, 0x68, 0x84, 0x72, 0x4F, 0xE9, 0xA3, 0xB2,
             0x87, 0xC3, 0x03, 0x30, 0xC2, 0xA6, 0x60, 0x37, 0x5D, 0x17, 0xBB, 0x20, 0x5A, 0x8C,
             0xF1, 0xAE, 0xCB, 0x35, 0x04, 0x57, 0xF8, 0xAB, 0x79, 0xEE, 0x25, 0x3A, 0xB6, 0xA8,
@@ -113,7 +154,7 @@ impl ComissionableDataProvider for TestComissionableDataProvider {
         Ok(())
     }
 
-    fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError> {
+    unsafe fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError> {
         *unsafe { setup_passcode.as_mut() }.unwrap() = 20202021;
 
         Ok(())
@@ -127,7 +168,7 @@ extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
     command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
 ) -> bool {
     if let Some(cb) = unsafe { &EMBER_AF_INSTANT_ACTION } {
-        cb.handle(command_obj, command_path, command_data)
+        unsafe { cb.handle(command_obj, command_path, command_data) }
     } else {
         true
     }
@@ -145,7 +186,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSetupDiscriminator(
     setup_discriminator: *mut u16,
 ) -> CHIP_ERROR {
     let res = if let Some(cb) = unsafe { &COMISSIONABLE_DATA_PROVIDER } {
-        cb.get_setup_discriminator(setup_discriminator)
+        unsafe { cb.get_setup_discriminator(setup_discriminator) }
     } else {
         ChipError::convert_code(0x2d)
     };
@@ -158,7 +199,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pIterationCount(
     iteration_count: *mut u32,
 ) -> CHIP_ERROR {
     let res = if let Some(cb) = unsafe { &COMISSIONABLE_DATA_PROVIDER } {
-        cb.get_spake2p_iteration_count(iteration_count)
+        unsafe { cb.get_spake2p_iteration_count(iteration_count) }
     } else {
         ChipError::convert_code(0x2d)
     };
@@ -171,7 +212,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pSalt(
     salt_buf: *mut chip_MutableByteSpan,
 ) -> CHIP_ERROR {
     let res = if let Some(cb) = unsafe { &COMISSIONABLE_DATA_PROVIDER } {
-        cb.get_spake2p_salt(salt_buf)
+        unsafe { cb.get_spake2p_salt(salt_buf) }
     } else {
         ChipError::convert_code(0x2d)
     };
@@ -185,7 +226,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSpake2pVerifier(
     out_verifier_len: *mut usize,
 ) -> CHIP_ERROR {
     let res = if let Some(cb) = unsafe { &COMISSIONABLE_DATA_PROVIDER } {
-        cb.get_spake2p_verifier(verifier_buf, out_verifier_len)
+        unsafe { cb.get_spake2p_verifier(verifier_buf, out_verifier_len) }
     } else {
         ChipError::convert_code(0x2d)
     };
@@ -198,7 +239,7 @@ extern "C" fn gluecb_CommissionableDataProvider_GetSetupPasscode(
     setup_passcode: *mut u32,
 ) -> CHIP_ERROR {
     let res = if let Some(cb) = unsafe { &COMISSIONABLE_DATA_PROVIDER } {
-        cb.get_setup_passcode(setup_passcode)
+        unsafe { cb.get_setup_passcode(setup_passcode) }
     } else {
         ChipError::convert_code(0x2d)
     };

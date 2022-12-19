@@ -1,4 +1,3 @@
 declare_args() {
-    #chip_root = "/home/ivan/dev/v1/connectedhomeip"
-    chip_root = getenv("CHIP_ROOT")
+    chip_root = getenv("CHIP_PATH")
 }

@@ -3,9 +3,12 @@ name = "connectedhomeip-sys"
 version = "0.2.0"
 edition = "2021"
 
+[patch.crates-io]
+embuild = { path = "../embuild" }
+
 [build-dependencies]
 anyhow = "1"
 pkg-config = "0.3.26"
 bindgen = "0.63"
 tempfile = "3.3"
-embuild = "0.31"
+embuild = { version = "0.31", features = ["git"] }

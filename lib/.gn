@@ -1,7 +1,7 @@
 #import("//build_overrides/build.gni")
-#chip_root = "/home/ivan/dev/v1/connectedhomeip"
-chip_root = getenv("CHIP_ROOT")
 #build_root = "//build"
+
+chip_root = getenv("CHIP_PATH")
 
 # The location of the build configuration file.
 buildconfig = "${chip_root}/build/config/BUILDCONFIG.gn"

@@ -120,7 +120,7 @@ fn build() -> Result<()> {
 fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Repository> {
     let sdk_repo = match sdk {
         sdk::SdkOrigin::Managed(remote) => {
-            let sdks_root = PathBuf::from(WORKSPACE_INSTALL_DIR).canonicalize()?;
+            let sdks_root = PathBuf::from(WORKSPACE_INSTALL_DIR);
             fs::create_dir_all(&sdks_root)?;
 
             remote.open_or_clone(

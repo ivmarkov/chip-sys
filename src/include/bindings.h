@@ -1,3 +1,5 @@
+#include "CHIPProjectAppConfig.h"
+
 #include <system/SystemBuildConfig.h>
 #include <platform/CHIPDeviceBuildConfig.h>
 
@@ -16,6 +18,7 @@
 #define CHIP_ADDRESS_RESOLVE_IMPL_INCLUDE_HEADER <lib/address_resolve/AddressResolve_DefaultImpl.h>
 
 #include "lib/core/CHIPError.h"
+#include "lib/core/DataModelTypes.h"
 #include "credentials/examples/DeviceAttestationCredsExample.h"
 #include "platform/ConfigurationManager.h"
 #include "platform/PlatformManager.h"
@@ -25,7 +28,17 @@
 #include "app/server/OnboardingCodesUtil.h"
 #include "app/util/af.h"
 #include "app/util/attribute-storage.h"
-#include "glue.h"
 
-// overrides CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT in CHIPProjectConfig
-//#define CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT 16
+#include "app-common/zap-generated/enums.h"
+#include "app-common/zap-generated/af-structs.h"
+#include "app-common/zap-generated/att-storage.h"
+#include "app-common/zap-generated/attribute-id.h"
+//#include "app-common/zap-generated/attribute-size.h"
+#include "app-common/zap-generated/attribute-type.h"
+#include "app-common/zap-generated/callback.h"
+#include "app-common/zap-generated/cluster-enums.h"
+#include "app-common/zap-generated/cluster-id.h"
+#include "app-common/zap-generated/cluster-objects.h"
+#include "app-common/zap-generated/command-id.h"
+
+#include "glue.h"

@@ -4,6 +4,7 @@ pub use bindings::*;
 pub use error::*;
 
 pub mod callbacks;
+pub mod dynamic;
 mod error;
 
 #[allow(clippy::all)]

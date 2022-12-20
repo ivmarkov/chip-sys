@@ -4,15 +4,36 @@ extern crate alloc;
 
 use alloc::boxed::Box;
 
-pub trait EmberAfInstantAction {
+pub trait EmberAf {
     /// # Safety
     /// Manipulates unsafe pointers from CHIP FFI
-    unsafe fn handle(
+    unsafe fn invoke(
         &self,
         command_obj: *mut chip_app_CommandHandler,
         command_path: *const chip_app_ConcreteCommandPath,
         command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
     ) -> bool;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn read(
+        &self,
+        endpoint_id: chip_EndpointId,
+        cluster_id: chip_ClusterId,
+        attribute_meta_data: *const EmberAfAttributeMetadata,
+        buffer: *const u8,
+        max_read_length: u16,
+    ) -> EmberAfStatus;
+
+    /// # Safety
+    /// Manipulates unsafe pointers from CHIP FFI
+    unsafe fn write(
+        &self,
+        endpoint_id: chip_EndpointId,
+        cluster_id: chip_ClusterId,
+        attribute_meta_data: *const EmberAfAttributeMetadata,
+        buffer: *mut u8,
+    ) -> EmberAfStatus;
 }
 
 pub trait ActionsPluginServerInit {
@@ -52,16 +73,16 @@ pub trait ComissionableDataProvider {
     unsafe fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError>;
 }
 
-static mut EMBER_AF_INSTANT_ACTION: Option<Box<dyn EmberAfInstantAction>> = None;
+static mut EMBER_AF: Option<Box<dyn EmberAf>> = None;
 static mut ACTIONS_PLUGIN_SERVER_INIT: Option<Box<dyn ActionsPluginServerInit>> = None;
 static mut COMISSIONABLE_DATA_PROVIDER: Option<Box<dyn ComissionableDataProvider>> = None;
 
 /// # Safety
 ///
 /// Call at the beginning of the program when only the main thread is alive.
-pub unsafe fn set_instant_action(action: impl EmberAfInstantAction + 'static) {
+pub unsafe fn set_af(af: impl EmberAf + 'static) {
     unsafe {
-        EMBER_AF_INSTANT_ACTION = Some(Box::new(action));
+        EMBER_AF = Some(Box::new(af));
     }
 }
 
@@ -167,10 +188,47 @@ extern "C" fn gluecb_emberAfActionsClusterInstantActionCallback(
     command_path: *const chip_app_ConcreteCommandPath,
     command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
 ) -> bool {
-    if let Some(cb) = unsafe { &EMBER_AF_INSTANT_ACTION } {
-        unsafe { cb.handle(command_obj, command_path, command_data) }
+    if let Some(cb) = unsafe { &EMBER_AF } {
+        unsafe { cb.invoke(command_obj, command_path, command_data) }
     } else {
         true
+    }
+}
+
+#[no_mangle]
+extern "C" fn gluecb_emberAfExternalAttributeReadCallback(
+    endpoint_id: chip_EndpointId,
+    cluster_id: chip_ClusterId,
+    attribute_meta_data: *const EmberAfAttributeMetadata,
+    buffer: *const u8,
+    max_read_length: u16,
+) -> EmberAfStatus {
+    if let Some(cb) = unsafe { &EMBER_AF } {
+        unsafe {
+            cb.read(
+                endpoint_id,
+                cluster_id,
+                attribute_meta_data,
+                buffer,
+                max_read_length,
+            )
+        }
+    } else {
+        EmberAfStatus_EMBER_ZCL_STATUS_FAILURE
+    }
+}
+
+#[no_mangle]
+extern "C" fn gluecb_emberAfExternalAttributeWriteCallback(
+    endpoint_id: chip_EndpointId,
+    cluster_id: chip_ClusterId,
+    attribute_meta_data: *const EmberAfAttributeMetadata,
+    buffer: *mut u8,
+) -> EmberAfStatus {
+    if let Some(cb) = unsafe { &EMBER_AF } {
+        unsafe { cb.write(endpoint_id, cluster_id, attribute_meta_data, buffer) }
+    } else {
+        EmberAfStatus_EMBER_ZCL_STATUS_FAILURE
     }
 }
 

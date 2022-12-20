@@ -1,4 +1,11 @@
-use chip_sys::{callbacks::TestComissionableDataProvider, *};
+use chip_sys::{
+    callbacks::TestComissionableDataProvider,
+    dynamic::{
+        Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes, Endpoint,
+        AGGREGATE_NODE_REGISTRATION,
+    },
+    *,
+};
 
 pub fn main() -> Result<(), ChipError> {
     chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
@@ -51,116 +58,22 @@ pub fn main() -> Result<(), ChipError> {
 
     // (taken from chip-devices.xml)
     const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
+
     // (taken from lo-devices.xml)
     const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
 
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_ROOT_NODE: u16 = 0x0016;
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_BRIDGE: u16 = 0x000e;
+    let bridged_light = {
+        const DEVICE_TYPES: DeviceTypes = &[
+            DeviceType::of(DEVICE_TYPE_LO_ON_OFF_LIGHT),
+            DeviceType::of(DEVICE_TYPE_BRIDGED_NODE),
+        ];
+        const DATA_VERSIONS: DataVersions = &[DataVersion::initial(), DataVersion::initial()];
+        const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
 
-    // Device Version for dynamic endpoints:
-    const DEVICE_VERSION_DEFAULT: u8 = 1;
-
-    static ROOT_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_ROOT_NODE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
-    static AGGREGATE_NODE_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_BRIDGE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
-    static BRIDGED_ON_OFF_DEVICE_TYPES: &[EmberAfDeviceType] = &[
-        EmberAfDeviceType {
-            deviceId: DEVICE_TYPE_LO_ON_OFF_LIGHT,
-            deviceVersion: DEVICE_VERSION_DEFAULT,
-        },
-        EmberAfDeviceType {
-            deviceId: DEVICE_TYPE_BRIDGED_NODE,
-            deviceVersion: DEVICE_VERSION_DEFAULT,
-        },
-    ];
-
-    static mut BRIDGED_LIGHT_CLUSTERS: &[EmberAfCluster] = &[
-        // EmberAfCluster {
-
-        // }
-    ];
-
-    let bridged_light = unsafe {
-        EmberAfEndpointType {
-            cluster: BRIDGED_LIGHT_CLUSTERS.as_ptr(),
-            clusterCount: BRIDGED_LIGHT_CLUSTERS.len() as _,
-            endpointSize: 0,
-        }
+        Endpoint::new(1, DEVICE_TYPES, DATA_VERSIONS, CLUSTERS)
     };
 
-    let bridged_light_data_version: [chip_DataVersion; 0] = [];
-
-    // // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedLightClusters)
-    // // DECLARE_DYNAMIC_CLUSTER(ZCL_ON_OFF_CLUSTER_ID, onOffAttrs, onOffIncomingCommands, nullptr),
-    // //     DECLARE_DYNAMIC_CLUSTER(ZCL_DESCRIPTOR_CLUSTER_ID, descriptorAttrs, nullptr, nullptr),
-    // //     DECLARE_DYNAMIC_CLUSTER(ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID, bridgedDeviceBasicAttrs, nullptr,
-    // // nullptr) DECLARE_DYNAMIC_CLUSTER_LIST_END;
-
-    // Set starting endpoint id where dynamic endpoints will be assigned, which
-    // will be the next consecutive endpoint id after the last fixed endpoint.
-    let first_endpoint_id =
-        unsafe { emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1) } + 1;
-
-    // Disable last fixed endpoint, which is used as a placeholder for all of the
-    // supported clusters so that ZAP will generated the requisite code.
-    unsafe {
-        emberAfEndpointEnableDisable(
-            emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1),
-            false,
-        );
-    }
-
-    // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
-    unsafe {
-        emberAfSetDeviceTypeList(
-            0,
-            chip_Span {
-                mDataBuf: ROOT_DEVICE_TYPES.as_ptr() as *mut _,
-                mDataLen: ROOT_DEVICE_TYPES.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-        );
-    }
-    unsafe {
-        emberAfSetDeviceTypeList(
-            1,
-            chip_Span {
-                mDataBuf: AGGREGATE_NODE_DEVICE_TYPES.as_ptr() as *mut _,
-                mDataLen: AGGREGATE_NODE_DEVICE_TYPES.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-        );
-    }
-
-    unsafe {
-        emberAfSetDynamicEndpoint(
-            0,
-            first_endpoint_id,
-            &bridged_light,
-            &chip_Span {
-                mDataBuf: BRIDGED_ON_OFF_DEVICE_TYPES.as_ptr() as *mut _,
-                mDataLen: BRIDGED_ON_OFF_DEVICE_TYPES.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-            chip_Span {
-                mDataBuf: bridged_light_data_version.as_ptr() as *mut _,
-                mDataLen: bridged_light_data_version.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-            1,
-        );
-    }
-
-    // /////////////////
+    let _registration = bridged_light.register(&AGGREGATE_NODE_REGISTRATION);
 
     println!("Spin loop");
 

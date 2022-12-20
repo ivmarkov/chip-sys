@@ -14,6 +14,20 @@ extern "C" bool gluecb_emberAfActionsClusterInstantActionCallback(
     const app::Clusters::Actions::Commands::InstantAction::DecodableType* commandData
 );
 
+extern "C" EmberAfStatus gluecb_emberAfExternalAttributeReadCallback(
+    EndpointId endpoint, 
+    ClusterId clusterId,
+    const EmberAfAttributeMetadata* attributeMetadata, uint8_t* buffer,
+    uint16_t maxReadLength
+);
+
+extern "C" EmberAfStatus gluecb_emberAfExternalAttributeWriteCallback(
+    EndpointId endpoint, 
+    ClusterId clusterId,
+    const EmberAfAttributeMetadata* attributeMetadata, 
+    uint8_t * buffer
+);
+
 extern "C" bool gluecb_MatterActionsPluginServerInitCallback();
 
 extern "C" CHIP_ERROR gluecb_CommissionableDataProvider_GetSetupDiscriminator(uint16_t* setupDiscriminator);
@@ -28,6 +42,23 @@ bool emberAfActionsClusterInstantActionCallback(
     const app::Clusters::Actions::Commands::InstantAction::DecodableType& commandData) {
     
     return gluecb_emberAfActionsClusterInstantActionCallback(commandObj, &commandPath, &commandData);
+}
+
+EmberAfStatus emberAfExternalAttributeReadCallback(
+    EndpointId endpoint, 
+    ClusterId clusterId,
+    const EmberAfAttributeMetadata* attributeMetadata, 
+    uint8_t* buffer,
+    uint16_t maxReadLength) {
+    return gluecb_emberAfExternalAttributeReadCallback(endpoint, clusterId, attributeMetadata, buffer, maxReadLength);
+}
+
+EmberAfStatus emberAfExternalAttributeWriteCallback(
+    EndpointId endpoint, 
+    ClusterId clusterId,
+    const EmberAfAttributeMetadata* attributeMetadata, 
+    uint8_t* buffer) {
+    return gluecb_emberAfExternalAttributeWriteCallback(endpoint, clusterId, attributeMetadata, buffer);
 }
 
 void MatterActionsPluginServerInitCallback(void) {

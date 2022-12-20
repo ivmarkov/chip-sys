@@ -58,6 +58,14 @@ static TYPES: &[&str] = &[
     "EmberAfCluster",
 ];
 
+static VARS: &[&str] = &[
+    "chip::k.*",
+    "CHIP_.*",
+    "ZCL_.*",
+    "ATTRIBUTE_MASK_.*",
+    "FIXED_ENDPOINT_COUNT",
+];
+
 static FUNCTIONS: &[&str] = &[
     "glue::Initialize",
     "glue::CommonCaseDeviceServerInitParams",
@@ -179,6 +187,10 @@ fn gen_bindings(includes: &[impl AsRef<Path>], out_dir: &Path) -> Result<()> {
         bindgen = bindgen.allowlist_function(function);
     }
 
+    for var in VARS {
+        bindgen = bindgen.allowlist_var(var);
+    }
+
     for include in includes {
         bindgen = bindgen.clang_arg(format!("-I{}", include.as_ref().display()));
     }
@@ -222,7 +234,7 @@ fn get_chip_includes(sdk: &git::Repository, chip_out_dir: &Path) -> Result<Vec<P
 
     let includes = [
         // Ours
-        PathBuf::from("lib"),
+        PathBuf::from("lib/include"),
         PathBuf::from("src/include"),
         // Generated
         PathBuf::from(chip_out_dir).join("gen/include"),

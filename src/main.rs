@@ -2,9 +2,31 @@ use chip_sys::{
     callbacks::TestComissionableDataProvider,
     dynamic::{
         Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes, Endpoint,
-        AGGREGATE_NODE_REGISTRATION,
+        AGGREGATE_NODE_REGISTRATION, ENDPOINT_ID_RANGE_START,
     },
     *,
+};
+
+// (taken from chip-devices.xml)
+const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
+
+// (taken from lo-devices.xml)
+const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
+
+static LIGHT: &Endpoint<'static, 'static> = {
+    const DEVICE_TYPES: DeviceTypes = &[
+        DeviceType::of(DEVICE_TYPE_LO_ON_OFF_LIGHT),
+        DeviceType::of(DEVICE_TYPE_BRIDGED_NODE),
+    ];
+    const DATA_VERSIONS: DataVersions = &[DataVersion::initial(), DataVersion::initial()];
+    const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
+
+    &Endpoint::new(
+        ENDPOINT_ID_RANGE_START,
+        DEVICE_TYPES,
+        DATA_VERSIONS,
+        CLUSTERS,
+    )
 };
 
 pub fn main() -> Result<(), ChipError> {
@@ -56,24 +78,7 @@ pub fn main() -> Result<(), ChipError> {
 
     // /////////////////
 
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
-
-    // (taken from lo-devices.xml)
-    const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
-
-    let bridged_light = {
-        const DEVICE_TYPES: DeviceTypes = &[
-            DeviceType::of(DEVICE_TYPE_LO_ON_OFF_LIGHT),
-            DeviceType::of(DEVICE_TYPE_BRIDGED_NODE),
-        ];
-        const DATA_VERSIONS: DataVersions = &[DataVersion::initial(), DataVersion::initial()];
-        const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
-
-        Endpoint::new(1, DEVICE_TYPES, DATA_VERSIONS, CLUSTERS)
-    };
-
-    let _registration = bridged_light.register(&AGGREGATE_NODE_REGISTRATION);
+    let _registration = LIGHT.register(&AGGREGATE_NODE_REGISTRATION).unwrap();
 
     println!("Spin loop");
 

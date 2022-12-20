@@ -1,13 +1,34 @@
 // TODO: Probably belongs to `chip-rs` or suchlike separate crate
 
+use core::fmt::Display;
 use core::marker::PhantomData;
 use core::ptr;
 
 use crate::*;
 
+pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
+
 pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
     f() // TODO
 }
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum RegistrationError {
+    AlreadyRegistered,
+    Overflow,
+}
+
+impl Display for RegistrationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::AlreadyRegistered => write!(f, "Already registered"),
+            Self::Overflow => write!(f, "No more endpoint slots"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for RegistrationError {}
 
 pub struct Endpoint<'a, 'c> {
     id: chip_EndpointId,
@@ -44,10 +65,10 @@ impl<'a, 'c> Endpoint<'a, 'c> {
     pub fn register<'r, 'p>(
         &'r self,
         parent: &'r Registration<'p>,
-    ) -> Result<Registration<'r>, ()> {
+    ) -> Result<Registration<'r>, RegistrationError> {
         lock(|| {
             if Registration::find_index(self.id()).is_some() {
-                Err(())
+                Err(RegistrationError::AlreadyRegistered)
             } else if let Some(index) = Registration::find_index(chip_kInvalidEndpointId) {
                 unsafe {
                     emberAfSetDynamicEndpoint(
@@ -70,11 +91,14 @@ impl<'a, 'c> Endpoint<'a, 'c> {
 
                 Ok(Registration(self.id(), PhantomData))
             } else {
-                Err(())
+                Err(RegistrationError::Overflow)
             }
         })
     }
 }
+
+unsafe impl<'a, 'c> Send for Endpoint<'a, 'c> {}
+unsafe impl<'a, 'c> Sync for Endpoint<'a, 'c> {}
 
 pub struct Registration<'r>(chip_EndpointId, PhantomData<&'r ()>);
 
@@ -213,6 +237,9 @@ impl<'a> Cluster<'a> {
     }
 }
 
+unsafe impl<'a> Send for Cluster<'a> {}
+unsafe impl<'a> Sync for Cluster<'a> {}
+
 pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
 
 #[repr(transparent)]
@@ -271,8 +298,6 @@ const EMPTY_COMMANDS: Commands = &[Command::END];
 // TODO
 pub static ROOT_NODE_REGISTRATION: Registration<'static> = Registration(0, PhantomData);
 pub static AGGREGATE_NODE_REGISTRATION: Registration<'static> = Registration(1, PhantomData);
-
-pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
 
 // TODO
 pub fn initialize() {

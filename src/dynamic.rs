@@ -4,13 +4,10 @@ use core::fmt::Display;
 use core::marker::PhantomData;
 use core::ptr;
 
+use crate::callbacks::lock;
 use crate::*;
 
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
-
-pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
-    f() // TODO
-}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum RegistrationError {
@@ -185,8 +182,8 @@ impl<'a> Cluster<'a> {
                 clusterId: id,
                 attributes: attributes.as_ptr() as _,
                 attributeCount: attributes.len() as _,
-                clusterSize: 0, // TODO
-                mask: 0,        // TODO
+                clusterSize: 0,
+                mask: CLUSTER_MASK_SERVER as _,
                 functions: ptr::null(),
                 acceptedCommandList: accepted_commands.as_ptr() as _,
                 generatedCommandList: generated_commands.as_ptr() as _,

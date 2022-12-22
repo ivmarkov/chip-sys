@@ -1,8 +1,8 @@
 use chip_sys::{
     callbacks::TestComissionableDataProvider,
     dynamic::{
-        Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes, Endpoint,
-        AGGREGATE_NODE_REGISTRATION, ENDPOINT_ID_RANGE_START,
+        initialize, Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes,
+        Endpoint, AGGREGATE_NODE_REGISTRATION, ENDPOINT_ID_RANGE_START,
     },
     *,
 };
@@ -43,7 +43,7 @@ pub fn main() -> Result<(), ChipError> {
     }
 
     unsafe {
-        callbacks::set_comissionable_data_provider(TestComissionableDataProvider);
+        callbacks::initialize(None, None, None, Some(&TestComissionableDataProvider));
     }
 
     unsafe {
@@ -77,6 +77,8 @@ pub fn main() -> Result<(), ChipError> {
     }
 
     // /////////////////
+
+    initialize();
 
     let _registration = LIGHT.register(&AGGREGATE_NODE_REGISTRATION).unwrap();
 

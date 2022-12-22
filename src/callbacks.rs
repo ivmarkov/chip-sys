@@ -1,8 +1,9 @@
 use crate::*;
 
-extern crate alloc;
-
-use alloc::boxed::Box;
+static mut LOCK: Option<(&'static dyn Fn(), &'static dyn Fn())> = None;
+static mut EMBER_AF: Option<&'static dyn EmberAf> = None;
+static mut ACTIONS_PLUGIN_SERVER_INIT: Option<&'static dyn Fn()> = None;
+static mut COMISSIONABLE_DATA_PROVIDER: Option<&'static dyn ComissionableDataProvider> = None;
 
 pub trait EmberAf {
     /// # Safety
@@ -34,10 +35,6 @@ pub trait EmberAf {
         attribute_meta_data: *const EmberAfAttributeMetadata,
         buffer: *mut u8,
     ) -> EmberAfStatus;
-}
-
-pub trait ActionsPluginServerInit {
-    fn init(&self);
 }
 
 pub trait ComissionableDataProvider {
@@ -73,34 +70,34 @@ pub trait ComissionableDataProvider {
     unsafe fn get_setup_passcode(&self, setup_passcode: *mut u32) -> Result<(), ChipError>;
 }
 
-static mut EMBER_AF: Option<Box<dyn EmberAf>> = None;
-static mut ACTIONS_PLUGIN_SERVER_INIT: Option<Box<dyn ActionsPluginServerInit>> = None;
-static mut COMISSIONABLE_DATA_PROVIDER: Option<Box<dyn ComissionableDataProvider>> = None;
+pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
+    if let Some((lock, unlock)) = unsafe { &LOCK } {
+        lock();
 
-/// # Safety
-///
-/// Call at the beginning of the program when only the main thread is alive.
-pub unsafe fn set_af(af: impl EmberAf + 'static) {
-    unsafe {
-        EMBER_AF = Some(Box::new(af));
+        let res = f();
+
+        unlock();
+
+        res
+    } else {
+        f()
     }
 }
 
 /// # Safety
 ///
 /// Call at the beginning of the program when only the main thread is alive.
-pub unsafe fn set_plugin_server_init(init: impl ActionsPluginServerInit + 'static) {
+pub unsafe fn initialize(
+    lock: Option<(&'static dyn Fn(), &'static dyn Fn())>,
+    af: Option<&'static dyn EmberAf>,
+    init: Option<&'static dyn Fn()>,
+    provider: Option<&'static dyn ComissionableDataProvider>,
+) {
     unsafe {
-        ACTIONS_PLUGIN_SERVER_INIT = Some(Box::new(init));
-    }
-}
-
-/// # Safety
-///
-/// Call at the beginning of the program when only the main thread is alive.
-pub unsafe fn set_comissionable_data_provider(provider: impl ComissionableDataProvider + 'static) {
-    unsafe {
-        COMISSIONABLE_DATA_PROVIDER = Some(Box::new(provider));
+        LOCK = lock;
+        EMBER_AF = af;
+        ACTIONS_PLUGIN_SERVER_INIT = init;
+        COMISSIONABLE_DATA_PROVIDER = provider;
     }
 }
 
@@ -234,8 +231,8 @@ extern "C" fn gluecb_emberAfExternalAttributeWriteCallback(
 
 #[no_mangle]
 extern "C" fn gluecb_MatterActionsPluginServerInitCallback() {
-    if let Some(cb) = unsafe { &ACTIONS_PLUGIN_SERVER_INIT } {
-        cb.init();
+    if let Some(init) = unsafe { &ACTIONS_PLUGIN_SERVER_INIT } {
+        init();
     }
 }
 

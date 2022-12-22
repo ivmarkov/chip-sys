@@ -39,10 +39,6 @@ pub fn main() -> Result<(), ChipError> {
     println!("Initialized");
 
     unsafe {
-        glue_Initialize();
-    }
-
-    unsafe {
         callbacks::initialize(None, None, None, Some(&TestComissionableDataProvider));
     }
 

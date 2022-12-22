@@ -98,6 +98,8 @@ pub unsafe fn initialize(
         EMBER_AF = af;
         ACTIONS_PLUGIN_SERVER_INIT = init;
         COMISSIONABLE_DATA_PROVIDER = provider;
+
+        glue_Initialize();
     }
 }
 

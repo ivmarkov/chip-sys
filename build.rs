@@ -5,6 +5,7 @@ use std::{fs, iter};
 use anyhow::Result;
 
 use embuild::build::{CInclArgs, LinkArgs};
+use embuild::cargo::workspace_dir;
 use embuild::{cmd, git, git::sdk};
 use pkg_config::Library;
 use tempfile::NamedTempFile;
@@ -129,7 +130,7 @@ fn build() -> Result<()> {
 fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Repository> {
     let sdk_repo = match sdk {
         sdk::SdkOrigin::Managed(remote) => {
-            let sdks_root = PathBuf::from(WORKSPACE_INSTALL_DIR);
+            let sdks_root = workspace_dir().unwrap().join(WORKSPACE_INSTALL_DIR);
             fs::create_dir_all(&sdks_root)?;
 
             remote.open_or_clone(

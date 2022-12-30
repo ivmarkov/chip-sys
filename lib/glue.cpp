@@ -17,7 +17,8 @@ extern "C" bool gluecb_emberAfActionsClusterInstantActionCallback(
 extern "C" EmberAfStatus gluecb_emberAfExternalAttributeReadCallback(
     EndpointId endpoint, 
     ClusterId clusterId,
-    const EmberAfAttributeMetadata* attributeMetadata, uint8_t* buffer,
+    const EmberAfAttributeMetadata* attributeMetadata, 
+    uint8_t* buffer,
     uint16_t maxReadLength
 );
 
@@ -25,7 +26,7 @@ extern "C" EmberAfStatus gluecb_emberAfExternalAttributeWriteCallback(
     EndpointId endpoint, 
     ClusterId clusterId,
     const EmberAfAttributeMetadata* attributeMetadata, 
-    uint8_t * buffer
+    uint8_t* buffer
 );
 
 extern "C" bool gluecb_MatterActionsPluginServerInitCallback();

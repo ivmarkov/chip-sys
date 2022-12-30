@@ -10,13 +10,18 @@ use crate::{EmberAfStatus, EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS, CHIP_ERROR};
 pub struct ChipError(CHIP_ERROR);
 
 impl ChipError {
-    /// Wrap a [CHIP_ERROR], return [`Some`] if `error` is **not** [0].
-    pub const fn from(error: CHIP_ERROR) -> Option<Self> {
-        if error.mError == 0 {
-            None
-        } else {
-            Some(Self(error))
-        }
+    /// Wrap a [CHIP_ERROR]
+    pub const fn from(error: CHIP_ERROR) -> Self {
+        Self(error)
+    }
+
+    /// Wrap a [CHIP_ERROR] code
+    pub const fn from_code(error_code: u32) -> Self {
+        Self(CHIP_ERROR {
+            mError: error_code,
+            mFile: core::ptr::null(),
+            mLine: 0,
+        })
     }
 
     /// Convert `error` into a [`Result`] with `Ok(value)` if no error occurred.
@@ -35,21 +40,6 @@ impl ChipError {
     ///
     /// If `error` equals to [0] return [`Ok`], otherwise return [`Err`] with the
     /// wrapped [`CHIP_ERROR`].
-    pub fn convert_code(error: u32) -> Result<(), Self> {
-        Self::check_and_return(
-            CHIP_ERROR {
-                mError: error,
-                mFile: core::ptr::null(),
-                mLine: 0,
-            },
-            (),
-        )
-    }
-
-    /// Convert `error` into a [`Result`] with `Ok(())` if not error occurred..
-    ///
-    /// If `error` equals to [0] return [`Ok`], otherwise return [`Err`] with the
-    /// wrapped [`CHIP_ERROR`].
     pub fn convert(error: CHIP_ERROR) -> Result<(), Self> {
         Self::check_and_return(error, ())
     }
@@ -61,19 +51,22 @@ impl ChipError {
     }
 
     /// Get the wrapped [`CHIP_ERROR`].
+    pub const fn error(&self) -> CHIP_ERROR {
+        self.0
+    }
+
+    /// Get the wrapped [`CHIP_ERROR`] code.
     pub fn code(&self) -> u32 {
         unsafe { self.0.AsInteger() }
     }
 
-    pub fn to_raw(result: Result<(), ChipError>) -> CHIP_ERROR {
-        match result {
-            Result::Ok(()) => CHIP_ERROR {
-                mError: 0,
-                mFile: core::ptr::null(),
-                mLine: 0,
-            },
-            Result::Err(err) => err.0,
-        }
+    pub const fn to_raw(result: Result<(), ChipError>) -> CHIP_ERROR {
+        let err = match result {
+            Result::Ok(()) => Self::from_code(0),
+            Result::Err(err) => err,
+        };
+
+        err.error()
     }
 }
 
@@ -140,13 +133,9 @@ macro_rules! chip_nofail {
 pub struct EmberAfError(EmberAfStatus);
 
 impl EmberAfError {
-    /// Wrap a [EmberAfStatus], return [`Some`] if `error` is **not** [0].
-    pub const fn from(error: EmberAfStatus) -> Option<Self> {
-        if error == EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS {
-            None
-        } else {
-            Some(Self(error))
-        }
+    /// Wrap a [`EmberAfStatus`]
+    pub const fn from(error: EmberAfStatus) -> Self {
+        Self(error)
     }
 
     /// Convert `error` into a [`Result`] with `Ok(value)` if no error occurred.
@@ -176,11 +165,11 @@ impl EmberAfError {
     }
 
     /// Get the wrapped [`EmberAfStatus`].
-    pub fn code(&self) -> EmberAfStatus {
+    pub const fn code(&self) -> EmberAfStatus {
         self.0
     }
 
-    pub fn to_raw(result: Result<(), EmberAfError>) -> EmberAfStatus {
+    pub const fn to_raw(result: Result<(), EmberAfError>) -> EmberAfStatus {
         match result {
             Result::Ok(()) => EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS,
             Result::Err(err) => err.0,

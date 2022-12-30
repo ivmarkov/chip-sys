@@ -1,8 +1,7 @@
 use chip_sys::{
-    callbacks::TestComissionableDataProvider,
     dynamic::{
-        initialize, Cluster, Clusters, DeviceType, DeviceTypes, Endpoint, BRIDGE_NODE,
-        ENDPOINT_ID_RANGE_START,
+        initialize, Cluster, Clusters, DeviceType, DeviceTypes, Endpoint,
+        TestComissionableDataProvider, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
     },
     *,
 };

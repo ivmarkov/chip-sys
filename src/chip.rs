@@ -4,11 +4,14 @@ use core::borrow::{Borrow, BorrowMut};
 use core::marker::PhantomData;
 use core::{ptr, slice};
 
-use crate::callbacks::lock;
 use crate::*;
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
+
+pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
+    cb::lock(f)
+}
 
 pub trait EmberCallback {
     fn invoke(
@@ -103,7 +106,7 @@ where
     }
 }
 
-impl<E> callbacks::EmberCallback for E
+impl<E> cb::EmberCallback for E
 where
     E: EmberCallback,
 {
@@ -213,7 +216,7 @@ where
     }
 }
 
-impl<C> callbacks::ComissionableDataProviderCallback for C
+impl<C> cb::ComissionableDataProviderCallback for C
 where
     C: ComissionableDataProviderCallback,
 {
@@ -332,19 +335,23 @@ impl ComissionableDataProviderCallback for TestComissionableDataProvider {
     }
 }
 
+pub const EP_0: StaticEndpoint<0> = StaticEndpoint;
+pub const EP_1: StaticEndpoint<1> = StaticEndpoint;
+pub const EP_2: StaticEndpoint<2> = StaticEndpoint;
+
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
 
-pub struct StaticEndpoint(chip_EndpointId);
+pub struct StaticEndpoint<const ID: chip_EndpointId>;
 
-impl StaticEndpoint {
+impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     pub const fn id(&self) -> chip_EndpointId {
-        self.0
+        ID
     }
 
-    fn initialize(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
+    pub fn initialize(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
         chip!(unsafe {
             emberAfSetDeviceTypeList(
-                self.0,
+                self.id(),
                 chip_Span {
                     mDataBuf: device_types.as_ptr() as *mut _,
                     mDataLen: device_types.len(),
@@ -354,6 +361,12 @@ impl StaticEndpoint {
         })?;
 
         Ok(())
+    }
+
+    pub fn enable(&self, enable: bool) {
+        unsafe {
+            emberAfEndpointEnableDisable(self.id(), enable);
+        }
     }
 }
 
@@ -392,19 +405,19 @@ impl<'a, 'c> Endpoint<'a, 'c> {
         self.clusters
     }
 
-    pub fn register<'r>(
+    pub fn register<'r, const PARENT_ID: chip_EndpointId>(
         &'r self,
         data_versions: &'r mut [chip_DataVersion],
-        parent: &'r StaticEndpoint,
+        parent: StaticEndpoint<PARENT_ID>,
     ) -> Result<Registration<'r, 'a, 'c, &'r Self, &'r mut [chip_DataVersion]>, EmberAfError> {
         Self::register_generic(self, data_versions, parent)
     }
 
     #[cfg(feature = "alloc")]
-    pub fn register_refcounted(
+    pub fn register_refcounted<const PARENT_ID: chip_EndpointId>(
         self: alloc::rc::Rc<Self>,
         data_versions: alloc::vec::Vec<chip_DataVersion>,
-        parent: &'static StaticEndpoint,
+        parent: StaticEndpoint<PARENT_ID>,
     ) -> Result<
         Registration<'static, 'a, 'c, alloc::rc::Rc<Self>, alloc::vec::Vec<chip_DataVersion>>,
         EmberAfError,
@@ -412,10 +425,10 @@ impl<'a, 'c> Endpoint<'a, 'c> {
         Self::register_generic(self, data_versions, parent)
     }
 
-    pub fn register_generic<'r, S, V>(
+    pub fn register_generic<'r, const PARENT_ID: chip_EndpointId, S, V>(
         this: S,
         mut data_versions: V,
-        parent: &'r StaticEndpoint,
+        parent: StaticEndpoint<PARENT_ID>,
     ) -> Result<Registration<'r, 'a, 'c, S, V>, EmberAfError>
     where
         S: Borrow<Self> + 'r,
@@ -444,7 +457,7 @@ impl<'a, 'c> Endpoint<'a, 'c> {
                             mDataLen: borrowed_this.device_types.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
-                        parent.borrow().0,
+                        parent.borrow().id(),
                     )
                 })?;
 
@@ -690,31 +703,3 @@ impl Command {
 pub type Commands<'a> = &'a [Command];
 
 const EMPTY_COMMANDS: Commands = &[Command::END];
-
-// TODO
-pub static ROOT_NODE: StaticEndpoint = StaticEndpoint(0);
-pub static BRIDGE_NODE: StaticEndpoint = StaticEndpoint(1);
-
-// TODO
-pub fn initialize() -> Result<(), ChipError> {
-    // Disable last fixed endpoint, which is used as a placeholder for all of the
-    // supported clusters so that ZAP will generated the requisite code.
-    unsafe {
-        emberAfEndpointEnableDisable(
-            emberAfEndpointFromIndex(emberAfFixedEndpointCount() - 1),
-            false,
-        );
-    }
-
-    //
-    // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
-    //
-
-    static ROOT_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x0016)]; // taken from chip-devices.xml
-    ROOT_NODE.initialize(ROOT_DEVICE_TYPES)?;
-
-    static BRIDGE_NODE_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x000e)]; // taken from chip-devices.xml
-    BRIDGE_NODE.initialize(BRIDGE_NODE_DEVICE_TYPES)?;
-
-    Ok(())
-}

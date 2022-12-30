@@ -1,7 +1,7 @@
 use chip_sys::{
-    dynamic::{
-        initialize, Cluster, Clusters, DeviceType, DeviceTypes, Endpoint,
-        TestComissionableDataProvider, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
+    chip::{
+        Cluster, Clusters, DeviceType, DeviceTypes, Endpoint, TestComissionableDataProvider,
+        ENDPOINT_ID_RANGE_START, EP_0, EP_1, EP_2,
     },
     *,
 };
@@ -26,7 +26,7 @@ pub fn main() -> Result<(), ChipError> {
     println!("Initialized");
 
     unsafe {
-        callbacks::initialize(None, None, None, Some(&TestComissionableDataProvider));
+        cb::initialize(None, None, None, Some(&TestComissionableDataProvider));
     }
 
     unsafe {
@@ -61,13 +61,25 @@ pub fn main() -> Result<(), ChipError> {
 
     // /////////////////
 
-    initialize()?;
+    // Disable last fixed endpoint, which is used as a placeholder for all of the
+    // supported clusters so that ZAP will generate the requisite code.
+    EP_2.enable(false);
+
+    //
+    // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
+    //
+
+    static ROOT_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x0016)]; // taken from chip-devices.xml
+    EP_0.initialize(ROOT_DEVICE_TYPES)?;
+
+    static BRIDGE_NODE_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x000e)]; // taken from chip-devices.xml
+    EP_1.initialize(BRIDGE_NODE_DEVICE_TYPES)?;
 
     println!("Endpoints initialized");
 
     let mut data_versions = [0; 3];
 
-    let _registration = LIGHT.register(&mut data_versions, &BRIDGE_NODE).unwrap();
+    let _registration = LIGHT.register(&mut data_versions, EP_1).unwrap();
 
     println!("Spin loop");
 

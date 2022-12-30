@@ -41,6 +41,21 @@ pub struct Endpoint<'a, 'c> {
 
 pub struct StaticEndpoint(chip_EndpointId);
 
+impl StaticEndpoint {
+    fn initialize(&self, device_types: &'static [DeviceType]) {
+        unsafe {
+            emberAfSetDeviceTypeList(
+                self.0,
+                chip_Span {
+                    mDataBuf: device_types.as_ptr() as *mut _,
+                    mDataLen: device_types.len(),
+                    _phantom_0: core::marker::PhantomData,
+                },
+            );
+        }
+    }
+}
+
 impl<'a, 'c> Endpoint<'a, 'c> {
     pub const fn new(
         id: chip_EndpointId,
@@ -48,6 +63,10 @@ impl<'a, 'c> Endpoint<'a, 'c> {
         data_versions: &'a [DataVersion],
         clusters: &'a [Cluster<'c>],
     ) -> Self {
+        if data_versions.len() != clusters.len() {
+            panic!("Number of clusters is different from number of data versions");
+        }
+
         Self {
             id,
             ep: EmberAfEndpointType {
@@ -329,33 +348,11 @@ pub type Commands<'a> = &'a [Command];
 const EMPTY_COMMANDS: Commands = &[Command::END];
 
 // TODO
-pub static ROOT_NODE_REGISTRATION: StaticEndpoint = StaticEndpoint(0);
-pub static AGGREGATE_NODE_REGISTRATION: StaticEndpoint = StaticEndpoint(1);
+pub static ROOT_NODE: StaticEndpoint = StaticEndpoint(0);
+pub static BRIDGE_NODE: StaticEndpoint = StaticEndpoint(1);
 
 // TODO
 pub fn initialize() {
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_ROOT_NODE: u16 = 0x0016;
-
-    // // (taken from chip-devices.xml)
-    // const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
-
-    // (taken from chip-devices.xml)
-    const DEVICE_TYPE_BRIDGE: u16 = 0x000e;
-
-    // Device Version for dynamic endpoints:
-    const DEVICE_VERSION_DEFAULT: u8 = 1;
-
-    static ROOT_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_ROOT_NODE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
-    static AGGREGATE_NODE_DEVICE_TYPES: &[EmberAfDeviceType] = &[EmberAfDeviceType {
-        deviceId: DEVICE_TYPE_BRIDGE,
-        deviceVersion: DEVICE_VERSION_DEFAULT,
-    }];
-
     // Disable last fixed endpoint, which is used as a placeholder for all of the
     // supported clusters so that ZAP will generated the requisite code.
     unsafe {
@@ -365,25 +362,13 @@ pub fn initialize() {
         );
     }
 
+    //
     // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
-    unsafe {
-        emberAfSetDeviceTypeList(
-            ROOT_NODE_REGISTRATION.0,
-            chip_Span {
-                mDataBuf: ROOT_DEVICE_TYPES.as_ptr() as *mut _,
-                mDataLen: ROOT_DEVICE_TYPES.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-        );
-    }
-    unsafe {
-        emberAfSetDeviceTypeList(
-            AGGREGATE_NODE_REGISTRATION.0,
-            chip_Span {
-                mDataBuf: AGGREGATE_NODE_DEVICE_TYPES.as_ptr() as *mut _,
-                mDataLen: AGGREGATE_NODE_DEVICE_TYPES.len(),
-                _phantom_0: core::marker::PhantomData,
-            },
-        );
-    }
+    //
+
+    static ROOT_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x0016)]; // taken from chip-devices.xml
+    ROOT_NODE.initialize(ROOT_DEVICE_TYPES);
+
+    static BRIDGE_NODE_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x000e)]; // taken from chip-devices.xml
+    BRIDGE_NODE.initialize(BRIDGE_NODE_DEVICE_TYPES);
 }

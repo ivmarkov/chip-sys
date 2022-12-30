@@ -2,23 +2,21 @@ use chip_sys::{
     callbacks::TestComissionableDataProvider,
     dynamic::{
         initialize, Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes,
-        Endpoint, AGGREGATE_NODE_REGISTRATION, ENDPOINT_ID_RANGE_START,
+        Endpoint, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
     },
     *,
 };
 
-// (taken from chip-devices.xml)
-const DEVICE_TYPE_BRIDGED_NODE: u16 = 0x0013;
-
-// (taken from lo-devices.xml)
-const DEVICE_TYPE_LO_ON_OFF_LIGHT: u16 = 0x0100;
-
 static LIGHT: &Endpoint<'static, 'static> = {
     const DEVICE_TYPES: DeviceTypes = &[
-        DeviceType::of(DEVICE_TYPE_LO_ON_OFF_LIGHT),
-        DeviceType::of(DEVICE_TYPE_BRIDGED_NODE),
+        DeviceType::of(0x0100), // taken from lo-devices.xml
+        DeviceType::of(0x0013), // taken from chip-devices.xml
     ];
-    const DATA_VERSIONS: DataVersions = &[DataVersion::initial(), DataVersion::initial()];
+    const DATA_VERSIONS: DataVersions = &[
+        DataVersion::initial(),
+        DataVersion::initial(),
+        DataVersion::initial(),
+    ];
     const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
 
     &Endpoint::new(
@@ -76,7 +74,7 @@ pub fn main() -> Result<(), ChipError> {
 
     initialize();
 
-    let _registration = LIGHT.register(&AGGREGATE_NODE_REGISTRATION).unwrap();
+    let _registration = LIGHT.register(&BRIDGE_NODE).unwrap();
 
     println!("Spin loop");
 

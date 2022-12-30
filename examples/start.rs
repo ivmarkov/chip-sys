@@ -1,8 +1,8 @@
 use chip_sys::{
     callbacks::TestComissionableDataProvider,
     dynamic::{
-        initialize, Cluster, Clusters, DataVersion, DataVersions, DeviceType, DeviceTypes,
-        Endpoint, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
+        initialize, Cluster, Clusters, DeviceType, DeviceTypes, Endpoint, BRIDGE_NODE,
+        ENDPOINT_ID_RANGE_START,
     },
     *,
 };
@@ -12,19 +12,9 @@ static LIGHT: &Endpoint<'static, 'static> = {
         DeviceType::of(0x0100), // taken from lo-devices.xml
         DeviceType::of(0x0013), // taken from chip-devices.xml
     ];
-    const DATA_VERSIONS: DataVersions = &[
-        DataVersion::initial(),
-        DataVersion::initial(),
-        DataVersion::initial(),
-    ];
     const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
 
-    &Endpoint::new(
-        ENDPOINT_ID_RANGE_START,
-        DEVICE_TYPES,
-        DATA_VERSIONS,
-        CLUSTERS,
-    )
+    &Endpoint::new(ENDPOINT_ID_RANGE_START, DEVICE_TYPES, CLUSTERS)
 };
 
 pub fn main() -> Result<(), ChipError> {
@@ -72,9 +62,13 @@ pub fn main() -> Result<(), ChipError> {
 
     // /////////////////
 
-    initialize();
+    initialize()?;
 
-    let _registration = LIGHT.register(&BRIDGE_NODE).unwrap();
+    println!("Endpoints initialized");
+
+    let mut data_versions = [0; 3];
+
+    let _registration = LIGHT.register(&mut data_versions, &BRIDGE_NODE).unwrap();
 
     println!("Spin loop");
 

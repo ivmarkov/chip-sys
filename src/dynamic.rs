@@ -1,7 +1,6 @@
 // TODO: Probably belongs to `chip-rs` or suchlike separate crate
 
-use core::borrow::Borrow;
-use core::fmt::Display;
+use core::borrow::{Borrow, BorrowMut};
 use core::marker::PhantomData;
 use core::ptr;
 
@@ -13,37 +12,18 @@ extern crate alloc;
 
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum RegistrationError {
-    AlreadyRegistered,
-    Overflow,
-}
-
-impl Display for RegistrationError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::AlreadyRegistered => write!(f, "Already registered"),
-            Self::Overflow => write!(f, "No more endpoint slots"),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for RegistrationError {}
-
 pub struct Endpoint<'a, 'c> {
     id: chip_EndpointId,
     ep: EmberAfEndpointType,
     device_types: &'a [DeviceType],
-    data_versions: &'a [DataVersion],
     _marker: PhantomData<&'a [&'c ()]>,
 }
 
 pub struct StaticEndpoint(chip_EndpointId);
 
 impl StaticEndpoint {
-    fn initialize(&self, device_types: &'static [DeviceType]) {
-        unsafe {
+    fn initialize(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
+        chip!(unsafe {
             emberAfSetDeviceTypeList(
                 self.0,
                 chip_Span {
@@ -51,8 +31,10 @@ impl StaticEndpoint {
                     mDataLen: device_types.len(),
                     _phantom_0: core::marker::PhantomData,
                 },
-            );
-        }
+            )
+        })?;
+
+        Ok(())
     }
 }
 
@@ -60,13 +42,8 @@ impl<'a, 'c> Endpoint<'a, 'c> {
     pub const fn new(
         id: chip_EndpointId,
         device_types: &'a [DeviceType],
-        data_versions: &'a [DataVersion],
         clusters: &'a [Cluster<'c>],
     ) -> Self {
-        if data_versions.len() != clusters.len() {
-            panic!("Number of clusters is different from number of data versions");
-        }
-
         Self {
             id,
             ep: EmberAfEndpointType {
@@ -75,7 +52,6 @@ impl<'a, 'c> Endpoint<'a, 'c> {
                 endpointSize: 0,
             },
             device_types,
-            data_versions,
             _marker: PhantomData,
         }
     }
@@ -86,40 +62,49 @@ impl<'a, 'c> Endpoint<'a, 'c> {
 
     pub fn register<'r>(
         &'r self,
+        data_versions: &'r mut [chip_DataVersion],
         parent: &'r StaticEndpoint,
-    ) -> Result<Registration<'a, 'c, &'r Self>, RegistrationError> {
-        Self::register_generic(self, parent)
+    ) -> Result<Registration<'r, 'a, 'c, &'r Self, &'r mut [chip_DataVersion]>, EmberAfError> {
+        Self::register_generic(self, data_versions, parent)
     }
 
     #[cfg(feature = "alloc")]
     pub fn register_refcounted(
         self: alloc::rc::Rc<Self>,
+        data_versions: alloc::vec::Vec<chip_DataVersion>,
         parent: &'static StaticEndpoint,
-    ) -> Result<Registration<'a, 'c, alloc::rc::Rc<Self>>, RegistrationError> {
-        Self::register_generic(self, parent)
+    ) -> Result<
+        Registration<'static, 'a, 'c, alloc::rc::Rc<Self>, alloc::vec::Vec<chip_DataVersion>>,
+        EmberAfError,
+    > {
+        Self::register_generic(self, data_versions, parent)
     }
 
-    pub fn register_generic<'r, S>(
+    pub fn register_generic<'r, S, V>(
         this: S,
+        mut data_versions: V,
         parent: &'r StaticEndpoint,
-    ) -> Result<Registration<'a, 'c, S>, RegistrationError>
+    ) -> Result<Registration<'r, 'a, 'c, S, V>, EmberAfError>
     where
-        S: Borrow<Self>,
+        S: Borrow<Self> + 'r,
+        V: BorrowMut<[chip_DataVersion]>,
+        'a: 'r,
+        'c: 'r,
     {
         lock(|| {
             let borrowed_this = this.borrow();
 
-            if Registration::<S>::find_index(borrowed_this.id()).is_some() {
-                Err(RegistrationError::AlreadyRegistered)
-            } else if let Some(index) = Registration::<S>::find_index(chip_kInvalidEndpointId) {
-                unsafe {
+            if let Some(index) = Registration::<S, V>::find_index(chip_kInvalidEndpointId) {
+                let borrowed_data_versions = data_versions.borrow_mut();
+
+                ember!(unsafe {
                     emberAfSetDynamicEndpoint(
                         index as _,
                         borrowed_this.id(),
                         &borrowed_this.ep,
                         &chip_Span {
-                            mDataBuf: borrowed_this.data_versions.as_ptr() as *mut _,
-                            mDataLen: borrowed_this.data_versions.len(),
+                            mDataBuf: borrowed_data_versions.as_ptr() as *mut _,
+                            mDataLen: borrowed_data_versions.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
                         chip_Span {
@@ -128,12 +113,12 @@ impl<'a, 'c> Endpoint<'a, 'c> {
                             _phantom_0: core::marker::PhantomData,
                         },
                         parent.borrow().0,
-                    );
-                }
+                    )
+                })?;
 
-                Ok(Registration(this, PhantomData))
+                Ok(Registration(this, data_versions, PhantomData))
             } else {
-                Err(RegistrationError::Overflow)
+                Err(EmberAfError::from(EmberAfStatus_EMBER_ZCL_STATUS_RESOURCE_EXHAUSTED).unwrap())
             }
         })
     }
@@ -142,15 +127,15 @@ impl<'a, 'c> Endpoint<'a, 'c> {
 unsafe impl Send for Endpoint<'static, 'static> {}
 unsafe impl<'a, 'c> Sync for Endpoint<'a, 'c> {}
 
-pub struct Registration<'a, 'c, S>(S, PhantomData<(&'a (), &'c ())>)
+pub struct Registration<'r, 'a, 'c, S, V>(S, V, PhantomData<(&'r (), &'a (), &'c ())>)
 where
-    S: Borrow<Endpoint<'a, 'c>>,
-    'c: 'a;
-
-impl<'a, 'c, S> Registration<'a, 'c, S>
-where
-    S: Borrow<Endpoint<'a, 'c>>,
+    S: Borrow<Endpoint<'a, 'c>> + 'r,
     'c: 'a,
+    'a: 'r;
+
+impl<'r, 'a, 'c, S, V> Registration<'r, 'a, 'c, S, V>
+where
+    S: Borrow<Endpoint<'a, 'c>> + 'r,
 {
     pub fn enable(&self, enable: bool) {
         lock(|| unsafe {
@@ -176,9 +161,9 @@ where
     }
 }
 
-impl<'a, 'c, S> Drop for Registration<'a, 'c, S>
+impl<'r, 'a, 'c, S, V> Drop for Registration<'r, 'a, 'c, S, V>
 where
-    S: Borrow<Endpoint<'a, 'c>>,
+    S: Borrow<Endpoint<'a, 'c>> + 'r,
 {
     fn drop(&mut self) {
         let index = self.index().unwrap();
@@ -207,20 +192,17 @@ impl DeviceType {
 
 pub type DeviceTypes<'a> = &'a [DeviceType];
 
-#[repr(transparent)]
-pub struct DataVersion(chip_DataVersion);
+// #[repr(transparent)]
+// #[derive(Copy, Clone, Eq, PartialEq, Default)]
+// pub struct DataVersion(chip_DataVersion);
 
-pub type DataVersions<'a> = &'a [DataVersion];
+// pub type DataVersions<'a> = &'a [DataVersion];
 
-impl DataVersion {
-    pub const fn initial() -> Self {
-        Self::new(1)
-    }
-
-    pub const fn new(version: chip_DataVersion) -> Self {
-        Self(version)
-    }
-}
+// impl DataVersion {
+//     pub const fn new() -> Self {
+//         Self(0)
+//     }
+// }
 
 #[repr(transparent)]
 pub struct Cluster<'a>(EmberAfCluster, PhantomData<&'a ()>);
@@ -352,7 +334,7 @@ pub static ROOT_NODE: StaticEndpoint = StaticEndpoint(0);
 pub static BRIDGE_NODE: StaticEndpoint = StaticEndpoint(1);
 
 // TODO
-pub fn initialize() {
+pub fn initialize() -> Result<(), ChipError> {
     // Disable last fixed endpoint, which is used as a placeholder for all of the
     // supported clusters so that ZAP will generated the requisite code.
     unsafe {
@@ -367,8 +349,10 @@ pub fn initialize() {
     //
 
     static ROOT_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x0016)]; // taken from chip-devices.xml
-    ROOT_NODE.initialize(ROOT_DEVICE_TYPES);
+    ROOT_NODE.initialize(ROOT_DEVICE_TYPES)?;
 
     static BRIDGE_NODE_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x000e)]; // taken from chip-devices.xml
-    BRIDGE_NODE.initialize(BRIDGE_NODE_DEVICE_TYPES);
+    BRIDGE_NODE.initialize(BRIDGE_NODE_DEVICE_TYPES)?;
+
+    Ok(())
 }

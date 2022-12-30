@@ -1,6 +1,6 @@
 use core::{ffi, fmt, slice, str};
 
-use crate::CHIP_ERROR;
+use crate::{EmberAfStatus, EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS, CHIP_ERROR};
 
 /// A wrapped [`CHIP_ERROR`] to check if an error occurred.
 ///
@@ -126,6 +126,105 @@ macro_rules! chip_nofail {
     ($err:expr) => {{
         if let ::core::option::Option::Some(error) =
             $crate::ChipError::from($err as $crate::CHIP_ERROR)
+        {
+            error.panic();
+        }
+    }};
+}
+
+/// A wrapped [`EmberAfStatus`] to check if an error occurred.
+///
+/// A [`EmberAfStatus`] is returned from most APIs as a status code. If it is equal
+/// to [0] it means **no** error occurred.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct EmberAfError(EmberAfStatus);
+
+impl EmberAfError {
+    /// Wrap a [EmberAfStatus], return [`Some`] if `error` is **not** [0].
+    pub const fn from(error: EmberAfStatus) -> Option<Self> {
+        if error == EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS {
+            None
+        } else {
+            Some(Self(error))
+        }
+    }
+
+    /// Convert `error` into a [`Result`] with `Ok(value)` if no error occurred.
+    ///
+    /// If `error` is [0] return [`Ok`] of `value` otherwise return [`Err`] of
+    /// wrapped `error`.
+    pub fn check_and_return<T>(error: EmberAfStatus, value: T) -> Result<T, Self> {
+        if error == EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS {
+            Ok(value)
+        } else {
+            Err(Self(error))
+        }
+    }
+
+    /// Convert `error` into a [`Result`] with `Ok(())` if not error occurred..
+    ///
+    /// If `error` equals to [0] return [`Ok`], otherwise return [`Err`] with the
+    /// wrapped [`EmberAfStatus`].
+    pub fn convert(error: EmberAfStatus) -> Result<(), Self> {
+        Self::check_and_return(error, ())
+    }
+
+    /// Panic with a specific error message of the contained [`CHIP_ERROR`].
+    #[track_caller]
+    pub fn panic(&self) {
+        panic!("EMBER AF ERROR: {self}");
+    }
+
+    /// Get the wrapped [`EmberAfStatus`].
+    pub fn code(&self) -> EmberAfStatus {
+        self.0
+    }
+
+    pub fn to_raw(result: Result<(), EmberAfError>) -> EmberAfStatus {
+        match result {
+            Result::Ok(()) => EmberAfStatus_EMBER_ZCL_STATUS_SUCCESS,
+            Result::Err(err) => err.0,
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for EmberAfError {}
+
+impl fmt::Display for EmberAfError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "EMBER AF ERROR: {}", self.0)
+    }
+}
+
+/// Convert a [`EmberAfStatus`] into a [`Result<(), EmberAfError>`](Result).
+///
+/// See [`EmberAfError::convert`].
+#[macro_export]
+macro_rules! ember {
+    ($err:expr) => {{
+        $crate::EmberAfError::convert($err as $crate::EmberAfStatus)
+    }};
+}
+
+/// Convert a [`EmberAfStatus`] into a [`Result<T, EmberAfError>`](Result).
+///
+/// See [`EmberAfError::check_and_return`].
+#[macro_export]
+macro_rules! ember_result {
+    ($err:expr, $value:expr) => {{
+        $crate::EmberAfError::check_and_return($err as $crate::EmberAfStatus, $value)
+    }};
+}
+
+/// Panic with an error-specific message if `err` is not [0].
+///
+/// See [`EmberAfError::from`] and [`EmberAfError::panic`].
+#[macro_export]
+macro_rules! ember_nofail {
+    ($err:expr) => {{
+        if let ::core::option::Option::Some(error) =
+            $crate::EmberAfError::from($err as $crate::EmberAfStatus)
         {
             error.panic();
         }

@@ -1,11 +1,15 @@
 // TODO: Probably belongs to `chip-rs` or suchlike separate crate
 
+use core::borrow::Borrow;
 use core::fmt::Display;
 use core::marker::PhantomData;
 use core::ptr;
 
 use crate::callbacks::lock;
 use crate::*;
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
 
@@ -35,6 +39,8 @@ pub struct Endpoint<'a, 'c> {
     _marker: PhantomData<&'a [&'c ()]>,
 }
 
+pub struct StaticEndpoint(chip_EndpointId);
+
 impl<'a, 'c> Endpoint<'a, 'c> {
     pub const fn new(
         id: chip_EndpointId,
@@ -59,34 +65,54 @@ impl<'a, 'c> Endpoint<'a, 'c> {
         self.id
     }
 
-    pub fn register<'r, 'p>(
+    pub fn register<'r>(
         &'r self,
-        parent: &'r Registration<'p>,
-    ) -> Result<Registration<'r>, RegistrationError> {
+        parent: &'r StaticEndpoint,
+    ) -> Result<Registration<'a, 'c, &'r Self>, RegistrationError> {
+        Self::register_generic(self, parent)
+    }
+
+    #[cfg(feature = "alloc")]
+    pub fn register_refcounted(
+        self: alloc::rc::Rc<Self>,
+        parent: &'static StaticEndpoint,
+    ) -> Result<Registration<'a, 'c, alloc::rc::Rc<Self>>, RegistrationError> {
+        Self::register_generic(self, parent)
+    }
+
+    pub fn register_generic<'r, S>(
+        this: S,
+        parent: &'r StaticEndpoint,
+    ) -> Result<Registration<'a, 'c, S>, RegistrationError>
+    where
+        S: Borrow<Self>,
+    {
         lock(|| {
-            if Registration::find_index(self.id()).is_some() {
+            let borrowed_this = this.borrow();
+
+            if Registration::<S>::find_index(borrowed_this.id()).is_some() {
                 Err(RegistrationError::AlreadyRegistered)
-            } else if let Some(index) = Registration::find_index(chip_kInvalidEndpointId) {
+            } else if let Some(index) = Registration::<S>::find_index(chip_kInvalidEndpointId) {
                 unsafe {
                     emberAfSetDynamicEndpoint(
                         index as _,
-                        self.id(),
-                        &self.ep,
+                        borrowed_this.id(),
+                        &borrowed_this.ep,
                         &chip_Span {
-                            mDataBuf: self.data_versions.as_ptr() as *mut _,
-                            mDataLen: self.data_versions.len(),
+                            mDataBuf: borrowed_this.data_versions.as_ptr() as *mut _,
+                            mDataLen: borrowed_this.data_versions.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
                         chip_Span {
-                            mDataBuf: self.device_types.as_ptr() as *mut _,
-                            mDataLen: self.device_types.len(),
+                            mDataBuf: borrowed_this.device_types.as_ptr() as *mut _,
+                            mDataLen: borrowed_this.device_types.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
-                        parent.0,
+                        parent.borrow().0,
                     );
                 }
 
-                Ok(Registration(self.id(), PhantomData))
+                Ok(Registration(this, PhantomData))
             } else {
                 Err(RegistrationError::Overflow)
             }
@@ -94,12 +120,19 @@ impl<'a, 'c> Endpoint<'a, 'c> {
     }
 }
 
-unsafe impl<'a, 'c> Send for Endpoint<'a, 'c> {}
+unsafe impl Send for Endpoint<'static, 'static> {}
 unsafe impl<'a, 'c> Sync for Endpoint<'a, 'c> {}
 
-pub struct Registration<'r>(chip_EndpointId, PhantomData<&'r ()>);
+pub struct Registration<'a, 'c, S>(S, PhantomData<(&'a (), &'c ())>)
+where
+    S: Borrow<Endpoint<'a, 'c>>,
+    'c: 'a;
 
-impl<'r> Registration<'r> {
+impl<'a, 'c, S> Registration<'a, 'c, S>
+where
+    S: Borrow<Endpoint<'a, 'c>>,
+    'c: 'a,
+{
     pub fn enable(&self, enable: bool) {
         lock(|| unsafe {
             emberAfEndpointEnableDisable(
@@ -110,7 +143,7 @@ impl<'r> Registration<'r> {
     }
 
     fn index(&self) -> Option<usize> {
-        Self::find_index(self.0)
+        Self::find_index(self.0.borrow().id)
     }
 
     fn find_index(id: chip_EndpointId) -> Option<usize> {
@@ -124,7 +157,10 @@ impl<'r> Registration<'r> {
     }
 }
 
-impl<'r> Drop for Registration<'r> {
+impl<'a, 'c, S> Drop for Registration<'a, 'c, S>
+where
+    S: Borrow<Endpoint<'a, 'c>>,
+{
     fn drop(&mut self) {
         let index = self.index().unwrap();
 
@@ -234,7 +270,7 @@ impl<'a> Cluster<'a> {
     }
 }
 
-unsafe impl<'a> Send for Cluster<'a> {}
+unsafe impl Send for Cluster<'static> {}
 unsafe impl<'a> Sync for Cluster<'a> {}
 
 pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
@@ -293,8 +329,8 @@ pub type Commands<'a> = &'a [Command];
 const EMPTY_COMMANDS: Commands = &[Command::END];
 
 // TODO
-pub static ROOT_NODE_REGISTRATION: Registration<'static> = Registration(0, PhantomData);
-pub static AGGREGATE_NODE_REGISTRATION: Registration<'static> = Registration(1, PhantomData);
+pub static ROOT_NODE_REGISTRATION: StaticEndpoint = StaticEndpoint(0);
+pub static AGGREGATE_NODE_REGISTRATION: StaticEndpoint = StaticEndpoint(1);
 
 // TODO
 pub fn initialize() {

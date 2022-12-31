@@ -13,6 +13,22 @@ pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
     cb::lock(f)
 }
 
+pub fn endpoint_updated(id: chip_EndpointId) {
+    lock(|| unsafe {
+        MatterReportingAttributeChangeCallback3(id);
+    });
+}
+
+pub fn attribute_updated(
+    endpoint_id: chip_EndpointId,
+    cluster_id: chip_ClusterId,
+    attribute_id: chip_AttributeId,
+) {
+    lock(|| unsafe {
+        MatterReportingAttributeChangeCallback1(endpoint_id, cluster_id, attribute_id);
+    });
+}
+
 pub trait EmberCallback {
     fn invoke(
         &self,

@@ -22,6 +22,7 @@
 #include "credentials/examples/DeviceAttestationCredsExample.h"
 #include "platform/ConfigurationManager.h"
 #include "platform/PlatformManager.h"
+#include "app/reporting/reporting.h"
 #include "app/InteractionModelEngine.h"
 #include "app/server/Dnssd.h"
 #include "app/server/Server.h"

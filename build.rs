@@ -86,6 +86,7 @@ static FUNCTIONS: &[&str] = &[
     "emberAfSetDeviceTypeList",
     "emberAfSetDynamicEndpoint",
     "emberAfClearDynamicEndpoint",
+    "MatterReportingAttributeChangeCallback",
 ];
 
 fn main() -> Result<()> {

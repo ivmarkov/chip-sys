@@ -281,7 +281,7 @@ where
         verifier_buf: *mut chip_MutableByteSpan,
         out_verifier_len: *mut usize,
     ) -> CHIP_ERROR {
-        let err = match ComissionableDataProviderCallback::spake2p_salt(&self) {
+        let err = match ComissionableDataProviderCallback::spake2p_verifier(&self) {
             Ok(value) => {
                 let verifier_buf = unsafe { verifier_buf.as_mut() }.unwrap();
                 let verifier_data_buf =

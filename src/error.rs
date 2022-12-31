@@ -51,7 +51,7 @@ impl ChipError {
     }
 
     /// Get the wrapped [`CHIP_ERROR`].
-    pub const fn error(&self) -> CHIP_ERROR {
+    pub const fn error(self) -> CHIP_ERROR {
         self.0
     }
 

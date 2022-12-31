@@ -365,24 +365,26 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     }
 
     pub fn initialize(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
-        chip!(unsafe {
-            emberAfSetDeviceTypeList(
-                self.id(),
-                chip_Span {
-                    mDataBuf: device_types.as_ptr() as *mut _,
-                    mDataLen: device_types.len(),
-                    _phantom_0: core::marker::PhantomData,
-                },
-            )
-        })?;
+        lock(|| {
+            chip!(unsafe {
+                emberAfSetDeviceTypeList(
+                    self.id(),
+                    chip_Span {
+                        mDataBuf: device_types.as_ptr() as *mut _,
+                        mDataLen: device_types.len(),
+                        _phantom_0: core::marker::PhantomData,
+                    },
+                )
+            })?;
 
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn enable(&self, enable: bool) {
-        unsafe {
+        lock(|| unsafe {
             emberAfEndpointEnableDisable(self.id(), enable);
-        }
+        })
     }
 }
 

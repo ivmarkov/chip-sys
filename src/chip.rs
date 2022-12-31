@@ -531,10 +531,12 @@ where
     S: Borrow<Endpoint<'a, 'c>> + 'r,
 {
     fn drop(&mut self) {
-        let index = self.index().unwrap();
+        lock(|| {
+            let index = self.index().unwrap();
 
-        lock(|| unsafe {
-            emberAfClearDynamicEndpoint(index as _);
+            unsafe {
+                emberAfClearDynamicEndpoint(index as _);
+            }
         });
     }
 }

@@ -388,98 +388,64 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     }
 }
 
-pub struct Endpoint<'a, 'c> {
-    id: chip_EndpointId,
-    ep: EmberAfEndpointType,
-    device_types: &'a [DeviceType],
-    clusters: &'a [Cluster<'c>],
-    _marker: PhantomData<&'a [&'c ()]>,
-}
+#[repr(transparent)]
+pub struct EndpointType<'a, 'c>(EmberAfEndpointType, PhantomData<&'a [&'c ()]>);
 
-impl<'a, 'c> Endpoint<'a, 'c> {
-    pub const fn new(
-        id: chip_EndpointId,
-        device_types: &'a [DeviceType],
-        clusters: &'a [Cluster<'c>],
-    ) -> Self {
-        Self {
-            id,
-            ep: EmberAfEndpointType {
+impl<'a, 'c> EndpointType<'a, 'c> {
+    pub const fn new(clusters: &'a [Cluster<'c>]) -> Self {
+        Self(
+            EmberAfEndpointType {
                 cluster: clusters.as_ptr() as _,
                 clusterCount: clusters.len() as _,
                 endpointSize: 0,
             },
-            clusters,
-            device_types,
-            _marker: PhantomData,
-        }
+            PhantomData,
+        )
     }
 
-    pub const fn id(&self) -> chip_EndpointId {
-        self.id
-    }
+    // TODO: Implement with an iterator
+    // pub const fn clusters(&self) -> &[Cluster<'c>] {
+    //     self.clusters
+    // }
+}
 
-    pub const fn clusters(&self) -> &[Cluster<'c>] {
-        self.clusters
-    }
+unsafe impl Send for EndpointType<'static, 'static> {}
+unsafe impl<'a, 'c> Sync for EndpointType<'a, 'c> {}
 
-    pub fn register<'r, const PARENT_ID: chip_EndpointId>(
-        &'r self,
+pub struct EndpointRegistration<'r>(chip_EndpointId, PhantomData<&'r ()>);
+
+impl<'r> EndpointRegistration<'r> {
+    pub fn new<const PARENT_ID: chip_EndpointId>(
+        id: chip_EndpointId,
+        device_types: &'r [DeviceType],
+        endpoint_type: &'r EndpointType,
         data_versions: &'r mut [chip_DataVersion],
         parent: StaticEndpoint<PARENT_ID>,
-    ) -> Result<Registration<'r, 'a, 'c, &'r Self, &'r mut [chip_DataVersion]>, EmberAfError> {
-        Self::register_generic(self, data_versions, parent)
-    }
-
-    #[cfg(feature = "alloc")]
-    pub fn register_refcounted<const PARENT_ID: chip_EndpointId>(
-        self: alloc::rc::Rc<Self>,
-        data_versions: alloc::vec::Vec<chip_DataVersion>,
-        parent: StaticEndpoint<PARENT_ID>,
-    ) -> Result<
-        Registration<'static, 'a, 'c, alloc::rc::Rc<Self>, alloc::vec::Vec<chip_DataVersion>>,
-        EmberAfError,
-    > {
-        Self::register_generic(self, data_versions, parent)
-    }
-
-    pub fn register_generic<'r, const PARENT_ID: chip_EndpointId, S, V>(
-        this: S,
-        mut data_versions: V,
-        parent: StaticEndpoint<PARENT_ID>,
-    ) -> Result<Registration<'r, 'a, 'c, S, V>, EmberAfError>
-    where
-        S: Borrow<Self> + 'r,
-        V: BorrowMut<[chip_DataVersion]>,
-        'a: 'r,
-        'c: 'r,
-    {
+    ) -> Result<Self, EmberAfError> {
         lock(|| {
-            let borrowed_this = this.borrow();
-
-            if let Some(index) = Registration::<S, V>::find_index(chip_kInvalidEndpointId) {
+            if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
                 let borrowed_data_versions = data_versions.borrow_mut();
 
                 ember!(unsafe {
                     emberAfSetDynamicEndpoint(
                         index as _,
-                        borrowed_this.id(),
-                        &borrowed_this.ep,
+                        id,
+                        endpoint_type as *const _ as *const _,
                         &chip_Span {
                             mDataBuf: borrowed_data_versions.as_ptr() as *mut _,
                             mDataLen: borrowed_data_versions.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
                         chip_Span {
-                            mDataBuf: borrowed_this.device_types.as_ptr() as *mut _,
-                            mDataLen: borrowed_this.device_types.len(),
+                            mDataBuf: device_types.as_ptr() as *mut _,
+                            mDataLen: device_types.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
                         parent.borrow().id(),
                     )
                 })?;
 
-                Ok(Registration(this, data_versions, PhantomData))
+                Ok(EndpointRegistration(id, PhantomData))
             } else {
                 Err(EmberAfError::from(
                     EmberAfStatus_EMBER_ZCL_STATUS_RESOURCE_EXHAUSTED,
@@ -487,21 +453,7 @@ impl<'a, 'c> Endpoint<'a, 'c> {
             }
         })
     }
-}
 
-unsafe impl Send for Endpoint<'static, 'static> {}
-unsafe impl<'a, 'c> Sync for Endpoint<'a, 'c> {}
-
-pub struct Registration<'r, 'a, 'c, S, V>(S, V, PhantomData<(&'r (), &'a (), &'c ())>)
-where
-    S: Borrow<Endpoint<'a, 'c>> + 'r,
-    'c: 'a,
-    'a: 'r;
-
-impl<'r, 'a, 'c, S, V> Registration<'r, 'a, 'c, S, V>
-where
-    S: Borrow<Endpoint<'a, 'c>> + 'r,
-{
     pub fn enable(&self, enable: bool) {
         lock(|| unsafe {
             emberAfEndpointEnableDisable(
@@ -511,8 +463,12 @@ where
         });
     }
 
+    pub const fn id(&self) -> chip_EndpointId {
+        self.0
+    }
+
     fn index(&self) -> Option<usize> {
-        Self::find_index(self.0.borrow().id)
+        Self::find_index(self.0)
     }
 
     fn find_index(id: chip_EndpointId) -> Option<usize> {
@@ -526,10 +482,7 @@ where
     }
 }
 
-impl<'r, 'a, 'c, S, V> Drop for Registration<'r, 'a, 'c, S, V>
-where
-    S: Borrow<Endpoint<'a, 'c>> + 'r,
-{
+impl<'r> Drop for EndpointRegistration<'r> {
     fn drop(&mut self) {
         lock(|| {
             let index = self.index().unwrap();
@@ -687,7 +640,7 @@ impl Attribute {
     }
 
     pub const fn size(&self) -> usize {
-        16 // TODO
+        self.0.size as _
     }
 
     pub const fn boolean(id: chip_AttributeId) -> Self {

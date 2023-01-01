@@ -1,19 +1,20 @@
 use chip_sys::{
     chip::{
-        Cluster, Clusters, DeviceType, DeviceTypes, Endpoint, TestComissionableDataProvider,
-        ENDPOINT_ID_RANGE_START, EP_0, EP_1, EP_2,
+        Cluster, Clusters, DeviceType, DeviceTypes, EndpointRegistration, EndpointType,
+        TestComissionableDataProvider, ENDPOINT_ID_RANGE_START, EP_0, EP_1, EP_2,
     },
     *,
 };
 
-static LIGHT: &Endpoint<'static, 'static> = {
-    const DEVICE_TYPES: DeviceTypes = &[
-        DeviceType::of(0x0100), // taken from lo-devices.xml
-        DeviceType::of(0x0013), // taken from chip-devices.xml
-    ];
+static LIGHT_DEVICE_TYPES: DeviceTypes = &[
+    DeviceType::of(0x0100), // taken from lo-devices.xml
+    DeviceType::of(0x0013), // taken from chip-devices.xml
+];
+
+static LIGHT: EndpointType<'static, 'static> = {
     const CLUSTERS: Clusters = &[Cluster::on_off(), Cluster::descriptor(), Cluster::bridged()];
 
-    &Endpoint::new(ENDPOINT_ID_RANGE_START, DEVICE_TYPES, CLUSTERS)
+    EndpointType::new(CLUSTERS)
 };
 
 pub fn main() -> Result<(), ChipError> {
@@ -79,7 +80,14 @@ pub fn main() -> Result<(), ChipError> {
 
     let mut data_versions = [0; 3];
 
-    let _registration = LIGHT.register(&mut data_versions, EP_1).unwrap();
+    let _registration = EndpointRegistration::new(
+        ENDPOINT_ID_RANGE_START,
+        LIGHT_DEVICE_TYPES,
+        &LIGHT,
+        &mut data_versions,
+        EP_1,
+    )
+    .unwrap();
 
     println!("Spin loop");
 

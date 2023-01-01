@@ -64,6 +64,7 @@ static VARS: &[&str] = &[
     "chip::k.*",
     "CHIP_.*",
     "ZCL_.*",
+    "EmberAfStatus_.*",
     "ATTRIBUTE_MASK_.*",
     "CLUSTER_MASK_.*",
     "FIXED_ENDPOINT_COUNT",

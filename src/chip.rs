@@ -352,6 +352,7 @@ impl ComissionableDataProviderCallback for TestComissionableDataProvider {
 }
 
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
+pub const ENDPOINT_COUNT: usize = CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT as _;
 
 pub const ROOT_NODE: StaticEndpoint<0> = StaticEndpoint;
 pub const BRIDGE_NODE: StaticEndpoint<1> = StaticEndpoint;
@@ -438,7 +439,7 @@ pub struct EndpointRegistration<'r>(chip_EndpointId, PhantomData<&'r ()>);
 impl<'r> EndpointRegistration<'r> {
     pub fn new<const PARENT_ID: chip_EndpointId>(
         id: chip_EndpointId,
-        device_types: &'r [DeviceType],
+        device_types: DeviceTypes<'r>,
         endpoint_type: &'r EndpointType,
         data_versions: &'r mut [chip_DataVersion],
         parent: StaticEndpoint<PARENT_ID>,
@@ -658,6 +659,10 @@ impl Attribute {
 
     pub const fn id(&self) -> chip_AttributeId {
         self.0.attributeId
+    }
+
+    pub const fn attr_type(&self) -> EmberAfAttributeType {
+        self.0.attributeType
     }
 
     pub const fn size(&self) -> usize {

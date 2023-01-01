@@ -351,11 +351,12 @@ impl ComissionableDataProviderCallback for TestComissionableDataProvider {
     }
 }
 
-pub const EP_0: StaticEndpoint<0> = StaticEndpoint;
-pub const EP_1: StaticEndpoint<1> = StaticEndpoint;
-pub const EP_2: StaticEndpoint<2> = StaticEndpoint;
-
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
+
+pub const ROOT_NODE: StaticEndpoint<0> = StaticEndpoint;
+pub const BRIDGE_NODE: StaticEndpoint<1> = StaticEndpoint;
+
+const TEMPLATE_NODE: StaticEndpoint<2> = StaticEndpoint;
 
 pub struct StaticEndpoint<const ID: chip_EndpointId>;
 
@@ -364,7 +365,27 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
         ID
     }
 
-    pub fn initialize(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
+    pub fn initialize() -> Result<(), ChipError> {
+        static ROOT_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x0016)]; // taken from chip-devices.xml
+        ROOT_NODE.initialize_ep(ROOT_DEVICE_TYPES)?;
+
+        //
+        // A bridge has root node device type on EP0 and aggregate node device type (bridge) at EP1
+        //
+        static BRIDGE_NODE_DEVICE_TYPES: &[DeviceType] = &[DeviceType::of(0x000e)]; // taken from chip-devices.xml
+        BRIDGE_NODE.initialize_ep(BRIDGE_NODE_DEVICE_TYPES)?;
+
+        // Disable last fixed endpoint, which is used as a placeholder for all of the
+        // supported clusters so that ZAP will generate the requisite code.
+        TEMPLATE_NODE.enable(false);
+
+        // Disable the bridge EP; users can re-enable
+        BRIDGE_NODE.enable(false);
+
+        Ok(())
+    }
+
+    fn initialize_ep(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
         lock(|| {
             chip!(unsafe {
                 emberAfSetDeviceTypeList(

@@ -7,20 +7,15 @@ use core::{ptr, slice};
 
 use crate::*;
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
-pub fn lock<F: FnOnce(&ChipContext) -> R, R>(f: F) -> R {
-    cb::lock(|| f(&ChipContext::internal_new()))
-}
-
-static TAKEN: AtomicBool = AtomicBool::new(false);
+static CTX_TAKEN: AtomicBool = AtomicBool::new(false);
 
 pub struct ChipContext(bool, PhantomData<*const ()>);
 
 impl ChipContext {
     pub fn take() -> Result<Self, ChipError> {
-        if let Ok(true) = TAKEN.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst) {
+        if let Ok(true) =
+            CTX_TAKEN.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        {
             Ok(Self(true, PhantomData))
         } else {
             Err(ChipError::from_code(1)) // TODO: Correct error code
@@ -78,7 +73,7 @@ impl ChipContext {
 impl Drop for ChipContext {
     fn drop(&mut self) {
         if self.0 {
-            TAKEN.store(true, Ordering::SeqCst);
+            CTX_TAKEN.store(true, Ordering::SeqCst);
         }
     }
 }
@@ -86,7 +81,7 @@ impl Drop for ChipContext {
 pub struct ChipConfiguration<'a> {
     pub vendor_id: Option<u16>,
     pub product_id: Option<u16>,
-    pub comissionable_data: Option<&'a ComissionableData<'a>>,
+    pub comissionable_data: Option<&'a dyn cb::ComissionableDataProviderCallback>,
 }
 
 impl<'a> ChipConfiguration<'a> {
@@ -105,17 +100,14 @@ impl<'a> Default for ChipConfiguration<'a> {
     }
 }
 
-pub struct Chip<'a, C>(&'a ChipContext, &'a C, PhantomData<&'a ()>);
+pub struct Chip<'a>(&'a ChipContext, PhantomData<&'a ()>);
 
-impl<'a, C> Chip<'a, C> {
+impl<'a> Chip<'a> {
     pub fn new(
         context: &'a ChipContext,
-        callback: &'a C,
+        callback: &'a dyn cb::EmberCallback,
         conf: &ChipConfiguration<'a>,
-    ) -> Result<Self, ChipError>
-    where
-        C: EmberCallback,
-    {
+    ) -> Result<Self, ChipError> {
         chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
         chip!(unsafe { ChipContext::platform_mgr().InitChipStack() })?;
 
@@ -161,13 +153,17 @@ impl<'a, C> Chip<'a, C> {
             });
         }
 
-        // if let Some(comissionable_data) = conf.comissionable_data {
-        //     let raw_cd: *const ComissionableData<'static> = comissionable_data as *const _ as *const _;
+        unsafe {
+            cb::EMBER = Some(core::mem::transmute(callback));
+        }
 
-        //     unsafe { cb::COMISSIONABLE_DATA_PROVIDER = Some(raw_cd.as_ref().unwrap()); }
-        // }
+        if let Some(comissionable_data) = conf.comissionable_data {
+            unsafe {
+                cb::COMISSIONABLE_DATA_PROVIDER = Some(core::mem::transmute(comissionable_data));
+            }
+        }
 
-        Ok(Self(context, callback, PhantomData))
+        Ok(Self(context, PhantomData))
     }
 
     pub fn context(&self) -> &ChipContext {
@@ -181,7 +177,7 @@ impl<'a, C> Chip<'a, C> {
     }
 }
 
-impl<'a, C> Drop for Chip<'a, C> {
+impl<'a> Drop for Chip<'a> {
     fn drop(&mut self) {
         unsafe {
             cb::LOCK = None;
@@ -423,6 +419,10 @@ pub static TEST_COMISSIONABLE_DATA: ComissionableData<'static> = ComissionableDa
     ],
 };
 
+pub fn lock<F: FnOnce(&ChipContext) -> R, R>(f: F) -> R {
+    cb::lock(|| f(&ChipContext::internal_new()))
+}
+
 pub const ENDPOINT_ID_RANGE_START: chip_EndpointId = FIXED_ENDPOINT_COUNT as _;
 pub const ENDPOINT_COUNT: usize = CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT as _;
 
@@ -481,53 +481,6 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
         })
     }
 }
-
-#[repr(transparent)]
-pub struct EndpointType<'a, 'c>(EmberAfEndpointType, PhantomData<&'a [&'c ()]>);
-
-impl<'a, 'c> EndpointType<'a, 'c> {
-    pub const fn new(clusters: &'a [Cluster<'c>]) -> Self {
-        Self(
-            EmberAfEndpointType {
-                cluster: clusters.as_ptr() as _,
-                clusterCount: clusters.len() as _,
-                endpointSize: 0,
-            },
-            PhantomData,
-        )
-    }
-
-    pub fn clusters(&self) -> ClusterIterator {
-        ClusterIterator { ep: self, index: 0 }
-    }
-}
-
-pub struct ClusterIterator<'i, 'a, 'c> {
-    ep: &'i EndpointType<'a, 'c>,
-    index: usize,
-}
-
-impl<'i, 'a, 'c> Iterator for ClusterIterator<'i, 'a, 'c> {
-    type Item = &'i Cluster<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.ep.0.clusterCount as _ {
-            let clusters =
-                unsafe { slice::from_raw_parts(self.ep.0.cluster, self.ep.0.clusterCount as _) };
-
-            let cluster = &clusters[self.index];
-
-            self.index += 1;
-
-            Some(unsafe { (cluster as *const _ as *const Cluster).as_ref() }.unwrap())
-        } else {
-            None
-        }
-    }
-}
-
-unsafe impl Send for EndpointType<'static, 'static> {}
-unsafe impl<'a, 'c> Sync for EndpointType<'a, 'c> {}
 
 pub struct EndpointRegistration<'r>(chip_EndpointId, PhantomData<&'r ()>);
 
@@ -610,6 +563,53 @@ impl<'r> Drop for EndpointRegistration<'r> {
                 emberAfClearDynamicEndpoint(index as _);
             }
         });
+    }
+}
+
+#[repr(transparent)]
+pub struct EndpointType<'a, 'c>(EmberAfEndpointType, PhantomData<&'a [&'c ()]>);
+
+impl<'a, 'c> EndpointType<'a, 'c> {
+    pub const fn new(clusters: &'a [Cluster<'c>]) -> Self {
+        Self(
+            EmberAfEndpointType {
+                cluster: clusters.as_ptr() as _,
+                clusterCount: clusters.len() as _,
+                endpointSize: 0,
+            },
+            PhantomData,
+        )
+    }
+
+    pub fn clusters(&self) -> ClusterIterator {
+        ClusterIterator { ep: self, index: 0 }
+    }
+}
+
+unsafe impl Send for EndpointType<'static, 'static> {}
+unsafe impl<'a, 'c> Sync for EndpointType<'a, 'c> {}
+
+pub struct ClusterIterator<'i, 'a, 'c> {
+    ep: &'i EndpointType<'a, 'c>,
+    index: usize,
+}
+
+impl<'i, 'a, 'c> Iterator for ClusterIterator<'i, 'a, 'c> {
+    type Item = &'i Cluster<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.ep.0.clusterCount as _ {
+            let clusters =
+                unsafe { slice::from_raw_parts(self.ep.0.cluster, self.ep.0.clusterCount as _) };
+
+            let cluster = &clusters[self.index];
+
+            self.index += 1;
+
+            Some(unsafe { (cluster as *const _ as *const Cluster).as_ref() }.unwrap())
+        } else {
+            None
+        }
     }
 }
 
@@ -732,6 +732,8 @@ impl<'a> Cluster<'a> {
 unsafe impl Send for Cluster<'static> {}
 unsafe impl<'a> Sync for Cluster<'a> {}
 
+pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
+
 pub struct AttributeIterator<'i, 'a> {
     cluster: &'i Cluster<'a>,
     index: usize,
@@ -759,8 +761,6 @@ impl<'i, 'a> Iterator for AttributeIterator<'i, 'a> {
         }
     }
 }
-
-pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
 
 #[repr(transparent)]
 pub struct Attribute(EmberAfAttributeMetadata);

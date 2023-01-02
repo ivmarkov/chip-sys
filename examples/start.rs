@@ -1,7 +1,8 @@
 use chip_sys::{
     chip::{
-        Cluster, Clusters, DeviceType, DeviceTypes, EndpointRegistration, EndpointType,
-        StaticEndpoint, TestComissionableDataProvider, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
+        Cluster, Clusters, ComissionableData, DeviceType, DeviceTypes, EndpointRegistration,
+        EndpointType, StaticEndpoint, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
+        TEST_COMISSIONABLE_DATA,
     },
     *,
 };
@@ -27,7 +28,7 @@ pub fn main() -> Result<(), ChipError> {
     println!("Initialized");
 
     unsafe {
-        cb::initialize(None, None, None, Some(&TestComissionableDataProvider));
+        cb::initialize(None, None, None, Some(&TEST_COMISSIONABLE_DATA));
     }
 
     unsafe {

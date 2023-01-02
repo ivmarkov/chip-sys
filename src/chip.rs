@@ -13,7 +13,7 @@ pub struct ChipContext(bool, PhantomData<*const ()>);
 
 impl ChipContext {
     pub fn take() -> Result<Self, ChipError> {
-        if let Ok(true) =
+        if let Ok(false) =
             CTX_TAKEN.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         {
             Ok(Self(true, PhantomData))
@@ -115,8 +115,6 @@ impl<'a> Chip<'a> {
             glue_Initialize();
         }
 
-        StaticEndpoint::<0>::initialize()?;
-
         // TODO: Make conditional
         unsafe {
             chip_Credentials_SetDeviceAttestationCredentialsProvider(
@@ -141,6 +139,8 @@ impl<'a> Chip<'a> {
         if let Some(product_id) = conf.product_id {
             chip!(unsafe { ChipContext::configuration_mgr_impl().StoreProductId(product_id) })?;
         }
+
+        StaticEndpoint::<0>::initialize()?;
 
         // TODO
         //ChipContext::configuration_mgr().LogDeviceConfig();

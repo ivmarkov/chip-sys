@@ -425,10 +425,33 @@ impl<'a, 'c> EndpointType<'a, 'c> {
         )
     }
 
-    // TODO: Implement with an iterator
-    // pub const fn clusters(&self) -> &[Cluster<'c>] {
-    //     self.clusters
-    // }
+    pub fn clusters(&self) -> ClusterIterator {
+        ClusterIterator { ep: self, index: 0 }
+    }
+}
+
+pub struct ClusterIterator<'i, 'a, 'c> {
+    ep: &'i EndpointType<'a, 'c>,
+    index: usize,
+}
+
+impl<'i, 'a, 'c> Iterator for ClusterIterator<'i, 'a, 'c> {
+    type Item = &'i Cluster<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.ep.0.clusterCount as _ {
+            let clusters =
+                unsafe { slice::from_raw_parts(self.ep.0.cluster, self.ep.0.clusterCount as _) };
+
+            let cluster = &clusters[self.index];
+
+            self.index += 1;
+
+            Some(unsafe { (cluster as *const _ as *const Cluster).as_ref() }.unwrap())
+        } else {
+            None
+        }
+    }
 }
 
 unsafe impl Send for EndpointType<'static, 'static> {}
@@ -583,6 +606,13 @@ impl<'a> Cluster<'a> {
         self.0.clusterId
     }
 
+    pub fn attributes(&self) -> AttributeIterator {
+        AttributeIterator {
+            cluster: self,
+            index: 0,
+        }
+    }
+
     pub const fn descriptor() -> Cluster<'static> {
         const ATTRIBUTES: Attributes = &[
             Attribute::array(ZCL_DEVICE_LIST_ATTRIBUTE_ID),
@@ -627,6 +657,34 @@ impl<'a> Cluster<'a> {
 
 unsafe impl Send for Cluster<'static> {}
 unsafe impl<'a> Sync for Cluster<'a> {}
+
+pub struct AttributeIterator<'i, 'a> {
+    cluster: &'i Cluster<'a>,
+    index: usize,
+}
+
+impl<'i, 'a> Iterator for AttributeIterator<'i, 'a> {
+    type Item = &'i Attribute;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.cluster.0.attributeCount as _ {
+            let attributes = unsafe {
+                slice::from_raw_parts(
+                    self.cluster.0.attributes,
+                    self.cluster.0.attributeCount as _,
+                )
+            };
+
+            let attribute = &attributes[self.index];
+
+            self.index += 1;
+
+            Some(unsafe { (attribute as *const _ as *const Attribute).as_ref() }.unwrap())
+        } else {
+            None
+        }
+    }
+}
 
 pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
 

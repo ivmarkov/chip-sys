@@ -2,6 +2,7 @@
 
 use core::borrow::{Borrow, BorrowMut};
 use core::marker::PhantomData;
+use core::sync::atomic::{AtomicBool, Ordering};
 use core::{ptr, slice};
 
 use crate::*;
@@ -9,29 +10,192 @@ use crate::*;
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub fn lock<F: FnOnce() -> R, R>(f: F) -> R {
-    cb::lock(f)
+pub fn lock<F: FnOnce(&ChipContext) -> R, R>(f: F) -> R {
+    cb::lock(|| f(&ChipContext::internal_new()))
 }
 
-pub fn endpoint_updated(id: chip_EndpointId) {
-    lock(|| unsafe {
-        MatterReportingAttributeChangeCallback3(id);
-    });
+static TAKEN: AtomicBool = AtomicBool::new(false);
+
+pub struct ChipContext(bool, PhantomData<*const ()>);
+
+impl ChipContext {
+    pub fn take() -> Result<Self, ChipError> {
+        if let Ok(true) = TAKEN.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(Self(true, PhantomData))
+        } else {
+            Err(ChipError::from_code(1)) // TODO: Correct error code
+        }
+    }
+
+    const fn internal_new() -> Self {
+        Self(false, PhantomData)
+    }
+
+    pub fn endpoint_updated(&self, id: chip_EndpointId) {
+        unsafe {
+            MatterReportingAttributeChangeCallback3(id);
+        }
+    }
+
+    pub fn attribute_updated(
+        &self,
+        endpoint_id: chip_EndpointId,
+        cluster_id: chip_ClusterId,
+        attribute_id: chip_AttributeId,
+    ) {
+        unsafe {
+            MatterReportingAttributeChangeCallback1(endpoint_id, cluster_id, attribute_id);
+        }
+    }
+
+    pub fn schedule(&self, work: extern "C" fn(*mut ()), work_ctx: *mut ()) {
+        unsafe {
+            Self::platform_mgr().ScheduleWork(Some(core::mem::transmute(work)), work_ctx as _);
+        }
+    }
+
+    fn platform_mgr() -> &'static mut chip_DeviceLayer_PlatformManager {
+        unsafe { chip_DeviceLayer_PlatformMgr().as_mut() }.unwrap()
+    }
+
+    fn configuration_mgr() -> &'static mut chip_DeviceLayer_ConfigurationManager {
+        unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap()
+    }
+
+    fn configuration_mgr_impl() -> &'static mut chip_DeviceLayer_ConfigurationManagerImpl {
+        unsafe { chip_DeviceLayer_ConfigurationManagerImpl_GetDefaultInstance().as_mut() }.unwrap()
+    }
+
+    fn server_init_params() -> &'static mut chip_CommonCaseDeviceServerInitParams {
+        unsafe { glue_CommonCaseDeviceServerInitParams().as_mut() }.unwrap()
+    }
+
+    fn server() -> &'static mut chip_Server {
+        unsafe { chip_Server_GetInstance().as_mut() }.unwrap()
+    }
 }
 
-pub fn attribute_updated(
-    endpoint_id: chip_EndpointId,
-    cluster_id: chip_ClusterId,
-    attribute_id: chip_AttributeId,
-) {
-    lock(|| unsafe {
-        MatterReportingAttributeChangeCallback1(endpoint_id, cluster_id, attribute_id);
-    });
+impl Drop for ChipContext {
+    fn drop(&mut self) {
+        if self.0 {
+            TAKEN.store(true, Ordering::SeqCst);
+        }
+    }
+}
+
+pub struct ChipConfiguration<'a> {
+    pub vendor_id: Option<u16>,
+    pub product_id: Option<u16>,
+    pub comissionable_data: Option<&'a ComissionableData<'a>>,
+}
+
+impl<'a> ChipConfiguration<'a> {
+    pub const fn new() -> Self {
+        Self {
+            vendor_id: None,
+            product_id: None,
+            comissionable_data: None,
+        }
+    }
+}
+
+impl<'a> Default for ChipConfiguration<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct Chip<'a, C>(&'a ChipContext, &'a C, PhantomData<&'a ()>);
+
+impl<'a, C> Chip<'a, C> {
+    pub fn new(
+        context: &'a ChipContext,
+        callback: &'a C,
+        conf: &ChipConfiguration<'a>,
+    ) -> Result<Self, ChipError>
+    where
+        C: EmberCallback,
+    {
+        chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
+        chip!(unsafe { ChipContext::platform_mgr().InitChipStack() })?;
+
+        unsafe {
+            glue_Initialize();
+        }
+
+        StaticEndpoint::<0>::initialize()?;
+
+        // TODO: Make conditional
+        unsafe {
+            chip_Credentials_SetDeviceAttestationCredentialsProvider(
+                chip_Credentials_Examples_GetExampleDACProvider(),
+            );
+        }
+
+        let init_params = ChipContext::server_init_params();
+
+        chip!(unsafe {
+            chip_CommonCaseDeviceServerInitParams_InitializeStaticResourcesBeforeServerInit(
+                init_params as *mut _ as *mut _,
+            )
+        })?;
+
+        chip!(unsafe { ChipContext::server().Init(init_params as *const _ as *const _) })?;
+
+        if let Some(vendor_id) = conf.vendor_id {
+            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreVendorId(vendor_id) })?;
+        }
+
+        if let Some(product_id) = conf.product_id {
+            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreProductId(product_id) })?;
+        }
+
+        // TODO
+        //ChipContext::configuration_mgr().LogDeviceConfig();
+
+        // TODO
+        unsafe {
+            PrintOnboardingCodes(chip_RendezvousInformationFlags {
+                mValue: chip_RendezvousInformationFlag_kOnNetwork,
+                _phantom_0: core::marker::PhantomData,
+            });
+        }
+
+        // if let Some(comissionable_data) = conf.comissionable_data {
+        //     let raw_cd: *const ComissionableData<'static> = comissionable_data as *const _ as *const _;
+
+        //     unsafe { cb::COMISSIONABLE_DATA_PROVIDER = Some(raw_cd.as_ref().unwrap()); }
+        // }
+
+        Ok(Self(context, callback, PhantomData))
+    }
+
+    pub fn context(&self) -> &ChipContext {
+        &self.0
+    }
+
+    pub fn run(&mut self) {
+        unsafe {
+            ChipContext::platform_mgr().RunEventLoop();
+        }
+    }
+}
+
+impl<'a, C> Drop for Chip<'a, C> {
+    fn drop(&mut self) {
+        unsafe {
+            cb::LOCK = None;
+            cb::EMBER = None;
+            cb::ACTIONS_PLUGIN_SERVER_INIT = None;
+            cb::COMISSIONABLE_DATA_PROVIDER = None;
+        }
+    }
 }
 
 pub trait EmberCallback {
     fn invoke(
         &self,
+        ctx: &ChipContext,
         command_obj: *mut chip_app_CommandHandler,
         command_path: *const chip_app_ConcreteCommandPath,
         command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
@@ -39,6 +203,7 @@ pub trait EmberCallback {
 
     fn read(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
@@ -47,6 +212,7 @@ pub trait EmberCallback {
 
     fn write(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
@@ -60,31 +226,34 @@ where
 {
     fn invoke(
         &self,
+        ctx: &ChipContext,
         command_obj: *mut chip_app_CommandHandler,
         command_path: *const chip_app_ConcreteCommandPath,
         command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
     ) -> bool {
-        (*self).invoke(command_obj, command_path, command_data)
+        (*self).invoke(ctx, command_obj, command_path, command_data)
     }
 
     fn read(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
         buffer: &mut [u8],
     ) -> Result<(), EmberAfError> {
-        (*self).read(endpoint_id, cluster_id, attribute, buffer)
+        (*self).read(ctx, endpoint_id, cluster_id, attribute, buffer)
     }
 
     fn write(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
         buffer: &[u8],
     ) -> Result<(), EmberAfError> {
-        (*self).write(endpoint_id, cluster_id, attribute, buffer)
+        (*self).write(ctx, endpoint_id, cluster_id, attribute, buffer)
     }
 }
 
@@ -94,31 +263,34 @@ where
 {
     fn invoke(
         &self,
+        ctx: &ChipContext,
         command_obj: *mut chip_app_CommandHandler,
         command_path: *const chip_app_ConcreteCommandPath,
         command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
     ) -> bool {
-        (**self).invoke(command_obj, command_path, command_data)
+        (**self).invoke(ctx, command_obj, command_path, command_data)
     }
 
     fn read(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
         buffer: &mut [u8],
     ) -> Result<(), EmberAfError> {
-        (**self).read(endpoint_id, cluster_id, attribute, buffer)
+        (**self).read(ctx, endpoint_id, cluster_id, attribute, buffer)
     }
 
     fn write(
         &self,
+        ctx: &ChipContext,
         endpoint_id: chip_EndpointId,
         cluster_id: chip_ClusterId,
         attribute: &Attribute,
         buffer: &[u8],
     ) -> Result<(), EmberAfError> {
-        (**self).write(endpoint_id, cluster_id, attribute, buffer)
+        (**self).write(ctx, endpoint_id, cluster_id, attribute, buffer)
     }
 }
 
@@ -132,7 +304,13 @@ where
         command_path: *const chip_app_ConcreteCommandPath,
         command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
     ) -> bool {
-        EmberCallback::invoke(&self, command_obj, command_path, command_data)
+        EmberCallback::invoke(
+            &self,
+            &ChipContext::internal_new(),
+            command_obj,
+            command_path,
+            command_data,
+        )
     }
 
     fn external_attribute_read(
@@ -147,6 +325,7 @@ where
 
         EmberAfError::to_raw(EmberCallback::read(
             self,
+            &ChipContext::internal_new(),
             endpoint_id,
             cluster_id,
             attribute,
@@ -165,21 +344,13 @@ where
 
         EmberAfError::to_raw(EmberCallback::write(
             self,
+            &ChipContext::internal_new(),
             endpoint_id,
             cluster_id,
             attribute,
             unsafe { slice::from_raw_parts(buffer, attribute.size()) },
         ))
     }
-}
-
-pub trait ComissionableDataProviderCallback {
-    fn setup_discriminator(&self) -> Result<u16, ChipError>;
-    fn setup_passcode(&self) -> Result<u32, ChipError>;
-
-    fn spake2p_iteration_count(&self) -> Result<u32, ChipError>;
-    fn spake2p_salt(&self) -> Result<&[u8], ChipError>;
-    fn spake2p_verifier(&self) -> Result<&[u8], ChipError>;
 }
 
 pub struct ComissionableData<'a> {
@@ -288,7 +459,7 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     }
 
     fn initialize_ep(&self, device_types: &'static [DeviceType]) -> Result<(), ChipError> {
-        lock(|| {
+        lock(|_| {
             chip!(unsafe {
                 emberAfSetDeviceTypeList(
                     self.id(),
@@ -305,7 +476,7 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     }
 
     pub fn enable(&self, enable: bool) {
-        lock(|| unsafe {
+        lock(|_| unsafe {
             emberAfEndpointEnableDisable(self.id(), enable);
         })
     }
@@ -368,7 +539,7 @@ impl<'r> EndpointRegistration<'r> {
         data_versions: &'r mut [chip_DataVersion],
         parent: StaticEndpoint<PARENT_ID>,
     ) -> Result<Self, EmberAfError> {
-        lock(|| {
+        lock(|_| {
             if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
                 let borrowed_data_versions = data_versions.borrow_mut();
 
@@ -400,8 +571,8 @@ impl<'r> EndpointRegistration<'r> {
         })
     }
 
-    pub fn enable(&self, enable: bool) {
-        lock(|| unsafe {
+    pub fn enable(&self, _ctx: &ChipContext, enable: bool) {
+        lock(|_| unsafe {
             emberAfEndpointEnableDisable(
                 emberAfEndpointFromIndex(self.index().unwrap() as _),
                 enable,
@@ -418,19 +589,21 @@ impl<'r> EndpointRegistration<'r> {
     }
 
     fn find_index(id: chip_EndpointId) -> Option<usize> {
-        for index in 0..CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT as _ {
-            if unsafe { emberAfEndpointFromIndex(index as _) } == id {
-                return Some(index);
+        lock(|_| {
+            for index in 0..CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT as _ {
+                if unsafe { emberAfEndpointFromIndex(index as _) } == id {
+                    return Some(index);
+                }
             }
-        }
 
-        None
+            None
+        })
     }
 }
 
 impl<'r> Drop for EndpointRegistration<'r> {
     fn drop(&mut self) {
-        lock(|| {
+        lock(|_| {
             let index = self.index().unwrap();
 
             unsafe {

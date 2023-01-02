@@ -1,9 +1,24 @@
 use crate::*;
 
-static mut LOCK: Option<(&'static dyn Fn(), &'static dyn Fn())> = None;
-static mut EMBER: Option<&'static dyn EmberCallback> = None;
-static mut ACTIONS_PLUGIN_SERVER_INIT: Option<&'static dyn Fn()> = None;
-static mut COMISSIONABLE_DATA_PROVIDER: Option<&'static dyn ComissionableDataProviderCallback> =
+/// # Safety
+///
+/// Set at the beginning of the program when only the main thread is alive.
+pub static mut LOCK: Option<(&'static dyn Fn(), &'static dyn Fn())> = None;
+
+/// # Safety
+///
+/// Set at the beginning of the program when only the main thread is alive.
+pub static mut EMBER: Option<&'static dyn EmberCallback> = None;
+
+/// # Safety
+///
+/// Set at the beginning of the program when only the main thread is alive.
+pub static mut ACTIONS_PLUGIN_SERVER_INIT: Option<&'static dyn Fn()> = None;
+
+/// # Safety
+///
+/// Set at the beginning of the program when only the main thread is alive.
+pub static mut COMISSIONABLE_DATA_PROVIDER: Option<&'static dyn ComissionableDataProviderCallback> =
     None;
 
 pub trait EmberCallback {

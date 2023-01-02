@@ -1,8 +1,7 @@
 use chip_sys::{
     chip::{
-        Cluster, Clusters, ComissionableData, DeviceType, DeviceTypes, EndpointRegistration,
-        EndpointType, StaticEndpoint, BRIDGE_NODE, ENDPOINT_ID_RANGE_START,
-        TEST_COMISSIONABLE_DATA,
+        Cluster, Clusters, DeviceType, DeviceTypes, EndpointRegistration, EndpointType,
+        StaticEndpoint, BRIDGE_NODE, ENDPOINT_ID_RANGE_START, TEST_COMISSIONABLE_DATA,
     },
     *,
 };

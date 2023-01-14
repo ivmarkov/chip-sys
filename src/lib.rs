@@ -13,6 +13,7 @@ mod error;
 #[allow(non_snake_case)]
 #[allow(rustdoc::all)]
 #[allow(improper_ctypes)] // TODO: For now, as 5.0 spits out tons of these
+#[allow(clashing_extern_declarations)] // TODO
 mod bindings {
     include!(env!("GENERATED_BINDINGS_FILE"));
 }

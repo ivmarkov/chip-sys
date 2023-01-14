@@ -91,6 +91,9 @@ impl fmt::Display for ChipError {
     }
 }
 
+unsafe impl Send for ChipError {}
+unsafe impl Sync for ChipError {}
+
 /// Convert a [`CHIP_ERROR`] into a [`Result<(), ChipError>`](Result).
 ///
 /// See [`ChipError::convert`].

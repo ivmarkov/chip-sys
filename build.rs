@@ -239,17 +239,16 @@ fn get_chip_includes(sdk: &git::Repository, chip_out_dir: &Path) -> Result<Vec<P
     let third_party = sdk.join("third_party");
 
     let includes = [
-        // Ours
-        PathBuf::from("lib/include"),
-        PathBuf::from("src/include"),
         // Generated
         PathBuf::from(chip_out_dir).join("gen/include"),
-        // Generated ZAP includes
-        sdk.join("zzz_generated/app-common"),
-        sdk.join("zzz_generated/bridge-app"),
+        // Ours
+        PathBuf::from("src/include"),
         PathBuf::from("lib/include"),
         // SDK - Linux standalone (TODO: needs config)
         sdk.join("config/standalone"),
+        // Generated ZAP includes
+        sdk.join("zzz_generated/bridge-app"),
+        sdk.join("zzz_generated/app-common"),
         // SDK
         sdk.join("src/include"),
         sdk.join("src"),

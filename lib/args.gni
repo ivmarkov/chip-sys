@@ -9,9 +9,9 @@ chip_system_project_config_include = "<SystemProjectConfig.h>"
 chip_project_config_include_dirs = [ "//include" ]
 chip_project_config_include_dirs += [ "${chip_root}/config/standalone" ]
 
-declare_args() {
-  chip_config_network_layer_ble = false # TODO: Not setting this leads to miscompilations
-  chip_inet_config_enable_ipv4 = false # TODO: Not setting this leads to miscompilations
-  chip_inet_config_enable_tcp_endpoint = true
-  chip_inet_config_enable_udp_endpoint = true
-}
+#declare_args() {
+#  chip_config_network_layer_ble = false # TODO: Not setting this leads to miscompilations
+#  chip_inet_config_enable_ipv4 = false # TODO: Not setting this leads to miscompilations
+#  chip_inet_config_enable_tcp_endpoint = true
+#  chip_inet_config_enable_udp_endpoint = true
+#}

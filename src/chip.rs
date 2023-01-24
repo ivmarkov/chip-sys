@@ -122,6 +122,24 @@ impl<'a> Chip<'a> {
             );
         }
 
+        if let Some(vendor_id) = conf.vendor_id {
+            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreVendorId(vendor_id) })?;
+        }
+
+        if let Some(product_id) = conf.product_id {
+            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreProductId(product_id) })?;
+        }
+
+        unsafe {
+            cb::EMBER = Some(core::mem::transmute(callback));
+        }
+
+        if let Some(comissionable_data) = conf.comissionable_data {
+            unsafe {
+                cb::COMISSIONABLE_DATA_PROVIDER = Some(core::mem::transmute(comissionable_data));
+            }
+        }
+
         let init_params = ChipContext::server_init_params();
 
         chip!(unsafe {
@@ -131,14 +149,6 @@ impl<'a> Chip<'a> {
         })?;
 
         chip!(unsafe { ChipContext::server().Init(init_params as *const _ as *const _) })?;
-
-        if let Some(vendor_id) = conf.vendor_id {
-            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreVendorId(vendor_id) })?;
-        }
-
-        if let Some(product_id) = conf.product_id {
-            chip!(unsafe { ChipContext::configuration_mgr_impl().StoreProductId(product_id) })?;
-        }
 
         StaticEndpoint::<0>::initialize()?;
 
@@ -151,16 +161,6 @@ impl<'a> Chip<'a> {
                 mValue: chip_RendezvousInformationFlag_kOnNetwork,
                 _phantom_0: core::marker::PhantomData,
             });
-        }
-
-        unsafe {
-            cb::EMBER = Some(core::mem::transmute(callback));
-        }
-
-        if let Some(comissionable_data) = conf.comissionable_data {
-            unsafe {
-                cb::COMISSIONABLE_DATA_PROVIDER = Some(core::mem::transmute(comissionable_data));
-            }
         }
 
         Ok(Self(context, PhantomData))

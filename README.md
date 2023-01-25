@@ -8,12 +8,16 @@ A SYS crate for the [Matter C++ SDK](https://github.com/project-chip/connectedho
 Currently buildable and runnable on Linux only, but should not be difficult to port to ESP32 and other MCUs which are already supported by the C++ SDK.
 
 ## Demo
+* Install the [Linux build prerequisites](https://github.com/project-chip/connectedhomeip/blob/master/docs/guides/BUILDING.md#installing-prerequisites-on-linux). For Debian/Ubuntu:
+  ```sh
+  sudo apt-get install git gcc g++ pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libavahi-client-dev ninja-build python3-venv python3-dev python3-pip unzip libgirepository1.0-dev libcairo2-dev libreadline-dev
+  ```
 * Build the [chip-tool](https://github.com/project-chip/connectedhomeip/tree/master/examples/chip-tool) utility from the Matter SDK
 * Build and run the crate and the Light On-Off example: 
   ```sh
   cargo run --example on_off
   ```
-* (During the build, the SYS crate will download and cache a private copy of the Matter SDK and its tooling; you only need to have the `build-essentials` of your distro pre-installed.)
+* (During the build, the SYS crate will download and cache a private copy of the Matter SDK and its tooling; you only need to have the build prerequisites of your distro pre-installed, as per above.)
 * Comission the Light example using chip-tool: 
   ```sh
   chip-tool pairing onnetwork-long 23 20202021 3840

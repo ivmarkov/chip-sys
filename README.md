@@ -3,12 +3,12 @@
 [![CI](https://github.com/ivmarkov/chip-sys/actions/workflows/ci.yml/badge.svg)](https://github.com/ivmarkov/chip-sys/actions/workflows/ci.yml)
 ![crates.io](https://img.shields.io/crates/v/chip-sys.svg)
 
-A SYS crate for the [Matter C++ SDK](), as well as a set of tiny type-safe Rust wrappers around it.
+A SYS crate for the [Matter C++ SDK](https://github.com/project-chip/connectedhomeip), as well as a tiny set of type-safe Rust wrappers around it.
 
 Currently buildable and runnable on Linux only, but should not be difficult to port to ESP32 and other MCUs which are already supported by the C++ SDK.
 
 ## Demo
-* Build the [chip-tool]() utility from the Matter SDK
+* Build the [chip-tool](https://github.com/project-chip/connectedhomeip/tree/master/examples/chip-tool) utility from the Matter SDK
 * Build and run the crate and the Light On-Off example: 
   ```sh
   cargo run --example on_off

@@ -53,9 +53,9 @@ impl ChipContext {
         unsafe { chip_DeviceLayer_PlatformMgr().as_mut() }.unwrap()
     }
 
-    fn configuration_mgr() -> &'static mut chip_DeviceLayer_ConfigurationManager {
-        unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap()
-    }
+    // fn configuration_mgr() -> &'static mut chip_DeviceLayer_ConfigurationManager {
+    //     unsafe { chip_DeviceLayer_ConfigurationMgr().as_mut() }.unwrap()
+    // }
 
     fn configuration_mgr_impl() -> &'static mut chip_DeviceLayer_ConfigurationManagerImpl {
         unsafe { chip_DeviceLayer_ConfigurationManagerImpl_GetDefaultInstance().as_mut() }.unwrap()
@@ -191,11 +191,13 @@ impl<'a> Drop for Chip<'a> {
 pub trait EmberCallback {
     fn invoke(
         &self,
-        ctx: &ChipContext,
-        command_obj: *mut chip_app_CommandHandler,
-        command_path: *const chip_app_ConcreteCommandPath,
-        command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
-    ) -> bool;
+        _ctx: &ChipContext,
+        _command_obj: *mut chip_app_CommandHandler,
+        _command_path: *const chip_app_ConcreteCommandPath,
+        _command_data: *const chip_app_Clusters_Actions_Commands_InstantAction_DecodableType,
+    ) -> bool {
+        false
+    }
 
     fn read(
         &self,
@@ -634,18 +636,6 @@ impl DeviceType {
 }
 
 pub type DeviceTypes<'a> = &'a [DeviceType];
-
-// #[repr(transparent)]
-// #[derive(Copy, Clone, Eq, PartialEq, Default)]
-// pub struct DataVersion(chip_DataVersion);
-
-// pub type DataVersions<'a> = &'a [DataVersion];
-
-// impl DataVersion {
-//     pub const fn new() -> Self {
-//         Self(0)
-//     }
-// }
 
 #[repr(transparent)]
 pub struct Cluster<'a>(EmberAfCluster, PhantomData<&'a ()>);

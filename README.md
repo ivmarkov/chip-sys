@@ -26,7 +26,7 @@ Currently buildable and runnable on Linux only, but should not be difficult to p
   ```sh
   chip-tool onoff on 23 3
   ```
-* Turn if back off: 
+* Turn it back off: 
   ```sh
   chip-tool onoff off 23 3
   ```

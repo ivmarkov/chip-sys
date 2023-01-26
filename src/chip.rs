@@ -496,16 +496,14 @@ impl<'r> EndpointRegistration<'r> {
     ) -> Result<Self, EmberAfError> {
         lock(|_| {
             if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
-                let borrowed_data_versions = data_versions.borrow_mut();
-
                 ember!(unsafe {
                     emberAfSetDynamicEndpoint(
                         index as _,
                         id,
                         endpoint_type as *const _ as *const _,
                         &chip_Span {
-                            mDataBuf: borrowed_data_versions.as_ptr() as *mut _,
-                            mDataLen: borrowed_data_versions.len(),
+                            mDataBuf: data_versions.as_ptr() as *mut _,
+                            mDataLen: data_versions.len(),
                             _phantom_0: core::marker::PhantomData,
                         },
                         chip_Span {

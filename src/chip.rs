@@ -1,6 +1,6 @@
 // TODO: Probably belongs to `chip-rs` or suchlike separate crate
 
-use core::borrow::{Borrow, BorrowMut};
+use core::borrow::Borrow;
 use core::marker::PhantomData;
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::{ptr, slice};
@@ -495,10 +495,14 @@ impl<'r> EndpointRegistration<'r> {
         parent: StaticEndpoint<PARENT_ID>,
     ) -> Result<Self, EmberAfError> {
         lock(|_| {
-            if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
+            if EndpointRegistration::find_index(id).is_some() {
+                Err(EmberAfError::from(
+                    EmberAfStatus_EMBER_ZCL_STATUS_DUPLICATE_EXISTS,
+                ))
+            } else if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
                 ember!(unsafe {
                     emberAfSetDynamicEndpoint(
-                        index as _,
+                        index - FIXED_ENDPOINT_COUNT as u16,
                         id,
                         endpoint_type as *const _ as *const _,
                         &chip_Span {
@@ -537,15 +541,17 @@ impl<'r> EndpointRegistration<'r> {
         self.0
     }
 
-    fn index(&self) -> Option<usize> {
+    fn index(&self) -> Option<u16> {
         Self::find_index(self.0)
     }
 
-    fn find_index(id: chip_EndpointId) -> Option<usize> {
+    fn find_index(id: chip_EndpointId) -> Option<u16> {
         lock(|_| {
-            for index in 0..CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT as _ {
-                if unsafe { emberAfEndpointFromIndex(index as _) } == id {
-                    return Some(index);
+            for index in
+                0..(FIXED_ENDPOINT_COUNT + CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT) as u16
+            {
+                if unsafe { emberAfEndpointFromIndex(index) } == id {
+                    return Some(index as _);
                 }
             }
 
@@ -560,7 +566,7 @@ impl<'r> Drop for EndpointRegistration<'r> {
             let index = self.index().unwrap();
 
             unsafe {
-                emberAfClearDynamicEndpoint(index as _);
+                emberAfClearDynamicEndpoint(index - FIXED_ENDPOINT_COUNT as u16);
             }
         });
     }

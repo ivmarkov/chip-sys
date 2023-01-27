@@ -108,6 +108,27 @@ impl<'a> Chip<'a> {
         callback: &'a dyn cb::EmberCallback,
         conf: &ChipConfiguration<'a>,
     ) -> Result<Self, ChipError> {
+        #[cfg(feature = "log")]
+        log::info!(
+            "CHIP Build Settings:
+                BLE:      {}
+                WIFI:     {}
+                WPA:      {}
+                Thread:   {}
+                IPv4:     {}
+                TCP:      {}
+                EP-COUNT: {}
+                DEBUG:    {}\n",
+            CONFIG_NETWORK_LAYER_BLE != 0,
+            CHIP_DEVICE_CONFIG_ENABLE_WIFI != 0,
+            CHIP_DEVICE_CONFIG_ENABLE_WPA != 0,
+            CHIP_ENABLE_OPENTHREAD != 0,
+            INET_CONFIG_ENABLE_IPV4 != 0,
+            INET_CONFIG_ENABLE_TCP_ENDPOINT != 0,
+            CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT,
+            CONFIG_IS_DEBUG != 0
+        );
+
         chip!(unsafe { chip_Platform_MemoryInit(core::ptr::null_mut(), 0) })?;
         chip!(unsafe { ChipContext::platform_mgr().InitChipStack() })?;
 

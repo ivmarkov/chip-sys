@@ -1,6 +1,6 @@
 import("//build_overrides/chip.gni")
-
 import("${chip_root}/src/app/chip_data_model.gni")
+import("//args.gni")
 
 chip_data_model("ember") {
   zap_file = "ember.zap"
@@ -8,6 +8,5 @@ chip_data_model("ember") {
   zap_pregenerated_dir = "${chip_root}/zzz_generated/bridge-app/zap-generated" # TODO
   is_server = true
 
-  # TODO: the definition of DYNAMIC_ENDPOINT_COUNT needs find a common home!
-  cflags = [ "-DDYNAMIC_ENDPOINT_COUNT=16" ]
+  cflags = [ "-fkeep-inline-functions" ]
 }

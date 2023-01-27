@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Ivan Markov <ivan.markov@gmail.com>"]
 categories = ["embedded", "hardware-support"]
 keywords = ["sys", "matter", "connectedhomeip", "chip"]
-description = "Bindings for project CHIP (Matter C++ SDK)"
+description = "Bindings for the Matter C++ SDK"
 repository = "https://github.com/ivmarkov/chip-sys"
 license = "Proprietary"
 readme = "README.md"
@@ -15,9 +15,27 @@ links = "chip"
 embuild = { git = "https://github.com/esp-rs/embuild" }
 
 [features]
-default = ["std"]
+default = ["std", "log?/std", "log"]
 std = ["alloc"]
 alloc = []
+ble = []
+wifi = []
+wpa = []
+thread = []
+ipv4 = []
+tcp = []
+endpoints-4 = []
+endpoints-8 = []
+endpoints-16 = []
+endpoints-32 = []
+endpoints-64 = []
+endpoints-128 = []
+endpoints-256 = []
+endpoints-512 = []
+endpoints-1024 = []
+
+[dependencies]
+log = { version = "0.4", default-features = false, optional = true }
 
 [build-dependencies]
 anyhow = "1"

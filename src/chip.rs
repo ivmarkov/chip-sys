@@ -741,8 +741,19 @@ impl<'a> Cluster<'a> {
 
     pub const fn on_off() -> Cluster<'static> {
         const ATTRIBUTES: Attributes = &[Attribute::boolean(ZCL_ON_OFF_ATTRIBUTE_ID)];
+        const ACCEPTED_COMMANDS: Commands = &[
+            Command::new(ZCL_OFF_COMMAND_ID),
+            Command::new(ZCL_ON_COMMAND_ID),
+            Command::new(ZCL_TOGGLE_COMMAND_ID),
+            Command::END,
+        ];
 
-        Cluster::new(ZCL_ON_OFF_CLUSTER_ID, ATTRIBUTES, None, None)
+        Cluster::new(
+            ZCL_ON_OFF_CLUSTER_ID,
+            ATTRIBUTES,
+            Some(ACCEPTED_COMMANDS),
+            None,
+        )
     }
 
     pub const fn level_control() -> Cluster<'static> {

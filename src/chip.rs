@@ -678,8 +678,8 @@ impl<'a> Cluster<'a> {
     pub const fn new(
         id: chip_ClusterId,
         attributes: &'a [Attribute],
-        accepted_commands: &'a [Command],
-        generated_commands: &'a [Command],
+        accepted_commands: Option<&'a [Command]>,
+        generated_commands: Option<&'a [Command]>,
     ) -> Self {
         Self(
             EmberAfCluster {
@@ -689,8 +689,16 @@ impl<'a> Cluster<'a> {
                 clusterSize: 0,
                 mask: CLUSTER_MASK_SERVER as _,
                 functions: ptr::null(),
-                acceptedCommandList: accepted_commands.as_ptr() as _,
-                generatedCommandList: generated_commands.as_ptr() as _,
+                acceptedCommandList: if let Some(accepted_commands) = accepted_commands {
+                    accepted_commands.as_ptr() as _
+                } else {
+                    core::ptr::null()
+                },
+                generatedCommandList: if let Some(generated_commands) = generated_commands {
+                    generated_commands.as_ptr() as _
+                } else {
+                    core::ptr::null()
+                },
             },
             PhantomData,
         )
@@ -719,12 +727,7 @@ impl<'a> Cluster<'a> {
             Attribute::array(ZCL_PARTS_LIST_ATTRIBUTE_ID),
         ];
 
-        Cluster::new(
-            ZCL_DESCRIPTOR_CLUSTER_ID,
-            ATTRIBUTES,
-            EMPTY_COMMANDS,
-            EMPTY_COMMANDS,
-        )
+        Cluster::new(ZCL_DESCRIPTOR_CLUSTER_ID, ATTRIBUTES, None, None)
     }
 
     pub const fn bridged() -> Cluster<'static> {
@@ -733,23 +736,13 @@ impl<'a> Cluster<'a> {
             Attribute::boolean(ZCL_REACHABLE_ATTRIBUTE_ID),
         ];
 
-        Cluster::new(
-            ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID,
-            ATTRIBUTES,
-            EMPTY_COMMANDS,
-            EMPTY_COMMANDS,
-        )
+        Cluster::new(ZCL_BRIDGED_DEVICE_BASIC_CLUSTER_ID, ATTRIBUTES, None, None)
     }
 
     pub const fn on_off() -> Cluster<'static> {
         const ATTRIBUTES: Attributes = &[Attribute::boolean(ZCL_ON_OFF_ATTRIBUTE_ID)];
 
-        Cluster::new(
-            ZCL_ON_OFF_CLUSTER_ID,
-            ATTRIBUTES,
-            EMPTY_COMMANDS,
-            EMPTY_COMMANDS,
-        )
+        Cluster::new(ZCL_ON_OFF_CLUSTER_ID, ATTRIBUTES, None, None)
     }
 
     pub const fn level_control() -> Cluster<'static> {
@@ -759,12 +752,7 @@ impl<'a> Cluster<'a> {
             Attribute::b8(ZCL_OPTIONS_ATTRIBUTE_ID),
         ];
 
-        Cluster::new(
-            ZCL_LEVEL_CONTROL_CLUSTER_ID,
-            ATTRIBUTES,
-            EMPTY_COMMANDS,
-            EMPTY_COMMANDS,
-        )
+        Cluster::new(ZCL_LEVEL_CONTROL_CLUSTER_ID, ATTRIBUTES, None, None)
     }
 
     pub const fn target_navigator() -> Cluster<'static> {
@@ -782,8 +770,8 @@ impl<'a> Cluster<'a> {
         Cluster::new(
             ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
             ATTRIBUTES,
-            ACCEPTED_COMMANDS,
-            GENERATED_COMMANDS,
+            Some(ACCEPTED_COMMANDS),
+            Some(GENERATED_COMMANDS),
         )
     }
 
@@ -801,8 +789,8 @@ impl<'a> Cluster<'a> {
         Cluster::new(
             ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
             ATTRIBUTES,
-            ACCEPTED_COMMANDS,
-            GENERATED_COMMANDS,
+            Some(ACCEPTED_COMMANDS),
+            Some(GENERATED_COMMANDS),
         )
     }
 
@@ -815,8 +803,8 @@ impl<'a> Cluster<'a> {
         Cluster::new(
             ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
             ATTRIBUTES,
-            ACCEPTED_COMMANDS,
-            GENERATED_COMMANDS,
+            Some(ACCEPTED_COMMANDS),
+            Some(GENERATED_COMMANDS),
         )
     }
 }
@@ -960,7 +948,7 @@ pub type Attributes<'a> = &'a [Attribute];
 pub struct Command(chip_CommandId);
 
 impl Command {
-    pub const END: Command = Command(0);
+    pub const END: Command = Command(0xFFFF_FFFF);
 
     pub const fn id(&self) -> chip_CommandId {
         self.0
@@ -972,5 +960,3 @@ impl Command {
 }
 
 pub type Commands<'a> = &'a [Command];
-
-const EMPTY_COMMANDS: Commands = &[Command::END];

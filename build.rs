@@ -177,11 +177,6 @@ fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Reposito
     #[cfg(not(feature = "wifi"))]
     let arg_wifi = false;
 
-    #[cfg(feature = "wpa")]
-    let arg_wpa = true;
-    #[cfg(not(feature = "wpa"))]
-    let arg_wpa = false;
-
     #[cfg(feature = "thread")]
     let arg_thread = true;
     #[cfg(not(feature = "thread"))]
@@ -211,7 +206,6 @@ fn build_chip(sdk: &sdk::SdkOrigin, chip_out_dir: &Path) -> Result<git::Reposito
                 standalone={arg_standalone}
                 chip_config_network_layer_ble={arg_ble} \
                 chip_enable_wifi={arg_wifi} \
-                chip_device_config_enable_wpa={arg_wpa} \
                 chip_enable_openthread={arg_thread} \
                 chip_inet_config_enable_ipv4={arg_ipv4} \
                 chip_inet_config_enable_tcp_endpoint={arg_tcp} \

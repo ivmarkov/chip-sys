@@ -2,6 +2,7 @@
 #include <app/util/af.h>
 #include <app/util/attribute-storage.h>
 #include <app/InteractionModelEngine.h>
+#include <app/clusters/mode-select-server/supported-modes-manager.h>
 #include <lib/core/CHIPError.h>
 #include <platform/CommissionableDataProvider.h>
 #include "glue.h"
@@ -62,8 +63,20 @@ EmberAfStatus emberAfExternalAttributeWriteCallback(
     return gluecb_emberAfExternalAttributeWriteCallback(endpoint, clusterId, attributeMetadata, buffer);
 }
 
-void MatterActionsPluginServerInitCallback(void) {
+void MatterActionsPluginServerInitCallback() {
     gluecb_MatterActionsPluginServerInitCallback();
+}
+
+namespace chip {
+namespace app {
+namespace Clusters {
+namespace ModeSelect {
+const SupportedModesManager * getSupportedModesManager() {
+    return NULL;
+}
+}
+}
+}
 }
 
 namespace glue {

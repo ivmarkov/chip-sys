@@ -3,9 +3,10 @@ import("${chip_root}/src/app/chip_data_model.gni")
 import("//args.gni")
 
 chip_data_model("ember") {
-  zap_file = "ember.zap"
-
-  zap_pregenerated_dir = "${chip_root}/zzz_generated/bridge-app/zap-generated" # TODO
+  zap_pregenerated_dir = "${chip_root}/zzz_generated/bridge-app/zap-generated"
+  zap_file = "${chip_root}/examples/bridge-app/bridge-common/bridge-app.zap"
+  #zap_pregenerated_dir = "${chip_root}/zzz_generated/all-clusters-minimal-app/zap-generated"
+  #zap_file = "${chip_root}/examples/all-clusters-minimal-app/all-clusters-common/all-clusters-minimal-app.zap"
   is_server = true
 
   cflags = [ "-fkeep-inline-functions" ]

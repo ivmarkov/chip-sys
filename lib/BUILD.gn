@@ -23,7 +23,3 @@ static_library("chip_all") {
 
   output_dir = root_out_dir
 }
-
-#group("linux") {
-#  deps = [ ":chip-bridge-app" ]
-#}

@@ -521,6 +521,9 @@ impl<'r> EndpointRegistration<'r> {
                     EmberAfStatus_EMBER_ZCL_STATUS_DUPLICATE_EXISTS,
                 ))
             } else if let Some(index) = EndpointRegistration::find_index(chip_kInvalidEndpointId) {
+                #[cfg(feature = "log")]
+                log::info!("Registering EP {id} at index {index}");
+
                 ember!(unsafe {
                     emberAfSetDynamicEndpoint(
                         index - FIXED_ENDPOINT_COUNT as u16,
@@ -550,6 +553,9 @@ impl<'r> EndpointRegistration<'r> {
     }
 
     pub fn enable(&self, _ctx: &ChipContext, enable: bool) {
+        #[cfg(feature = "log")]
+        log::info!("Setting enabled state for EP {} to {}", self.id(), enable);
+
         lock(|_| unsafe {
             emberAfEndpointEnableDisable(
                 emberAfEndpointFromIndex(self.index().unwrap() as _),
@@ -585,6 +591,9 @@ impl<'r> Drop for EndpointRegistration<'r> {
     fn drop(&mut self) {
         lock(|_| {
             let index = self.index().unwrap();
+
+            #[cfg(feature = "log")]
+            log::info!("Unegistering EP {} from index {index}", self.id());
 
             unsafe {
                 emberAfClearDynamicEndpoint(index - FIXED_ENDPOINT_COUNT as u16);

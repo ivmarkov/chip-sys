@@ -719,7 +719,7 @@ impl<'a> Cluster<'a> {
     }
 
     pub const fn bridged() -> Cluster<'static> {
-        const ATTRIBUTES: &[Attribute] = &[
+        const ATTRIBUTES: Attributes = &[
             Attribute::string(ZCL_NODE_LABEL_ATTRIBUTE_ID),
             Attribute::boolean(ZCL_REACHABLE_ATTRIBUTE_ID),
         ];
@@ -733,13 +733,81 @@ impl<'a> Cluster<'a> {
     }
 
     pub const fn on_off() -> Cluster<'static> {
-        const ATTRIBUTES: &[Attribute] = &[Attribute::boolean(ZCL_ON_OFF_ATTRIBUTE_ID)];
+        const ATTRIBUTES: Attributes = &[Attribute::boolean(ZCL_ON_OFF_ATTRIBUTE_ID)];
 
         Cluster::new(
             ZCL_ON_OFF_CLUSTER_ID,
             ATTRIBUTES,
             EMPTY_COMMANDS,
             EMPTY_COMMANDS,
+        )
+    }
+
+    pub const fn level_control() -> Cluster<'static> {
+        const ATTRIBUTES: Attributes = &[
+            Attribute::u8(ZCL_CURRENT_LEVEL_ATTRIBUTE_ID),
+            Attribute::u8(ZCL_ON_LEVEL_ATTRIBUTE_ID),
+            Attribute::b8(ZCL_OPTIONS_ATTRIBUTE_ID),
+        ];
+
+        Cluster::new(
+            ZCL_LEVEL_CONTROL_CLUSTER_ID,
+            ATTRIBUTES,
+            EMPTY_COMMANDS,
+            EMPTY_COMMANDS,
+        )
+    }
+
+    pub const fn target_navigator() -> Cluster<'static> {
+        const ATTRIBUTES: Attributes = &[
+            Attribute::array(ZCL_TARGET_NAVIGATOR_LIST_ATTRIBUTE_ID),
+            Attribute::u8(ZCL_TARGET_NAVIGATOR_CURRENT_TARGET_ATTRIBUTE_ID),
+        ];
+        const ACCEPTED_COMMANDS: Commands =
+            &[Command::new(ZCL_NAVIGATE_TARGET_COMMAND_ID), Command::END];
+        const GENERATED_COMMANDS: Commands = &[
+            Command::new(ZCL_NAVIGATE_TARGET_RESPONSE_COMMAND_ID),
+            Command::END,
+        ];
+
+        Cluster::new(
+            ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
+            ATTRIBUTES,
+            ACCEPTED_COMMANDS,
+            GENERATED_COMMANDS,
+        )
+    }
+
+    pub const fn media_playback() -> Cluster<'static> {
+        const ATTRIBUTES: Attributes = &[Attribute::u8(ZCL_MEDIA_PLAYBACK_STATE_ATTRIBUTE_ID)];
+        const ACCEPTED_COMMANDS: Commands = &[
+            Command::new(ZCL_PLAY_COMMAND_ID),
+            Command::new(ZCL_PAUSE_COMMAND_ID),
+            Command::new(ZCL_STOP_COMMAND_ID),
+            Command::END,
+        ];
+        const GENERATED_COMMANDS: Commands =
+            &[Command::new(ZCL_PLAYBACK_RESPONSE_COMMAND_ID), Command::END];
+
+        Cluster::new(
+            ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
+            ATTRIBUTES,
+            ACCEPTED_COMMANDS,
+            GENERATED_COMMANDS,
+        )
+    }
+
+    pub const fn keypad_input() -> Cluster<'static> {
+        const ATTRIBUTES: Attributes = &[];
+        const ACCEPTED_COMMANDS: Commands = &[Command::new(ZCL_SEND_KEY_COMMAND_ID), Command::END];
+        const GENERATED_COMMANDS: Commands =
+            &[Command::new(ZCL_SEND_KEY_RESPONSE_COMMAND_ID), Command::END];
+
+        Cluster::new(
+            ZCL_TARGET_NAVIGATOR_CLUSTER_ID,
+            ATTRIBUTES,
+            ACCEPTED_COMMANDS,
+            GENERATED_COMMANDS,
         )
     }
 }
@@ -818,6 +886,54 @@ impl Attribute {
 
     pub const fn boolean(id: chip_AttributeId) -> Self {
         Self::new(id, ZCL_BOOLEAN_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn b8(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_BITMAP8_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn b16(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_BITMAP16_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn b32(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_BITMAP32_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn b64(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_BITMAP64_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn u8(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT8U_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn u16(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT16U_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn u32(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT32U_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn u64(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT64U_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn i8(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT8S_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn i16(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT16S_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn i32(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT32S_ATTRIBUTE_TYPE as _, 1, 0)
+    }
+
+    pub const fn i64(id: chip_AttributeId) -> Self {
+        Self::new(id, ZCL_INT64S_ATTRIBUTE_TYPE as _, 1, 0)
     }
 
     pub const fn string(id: chip_AttributeId) -> Self {

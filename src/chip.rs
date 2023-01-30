@@ -372,6 +372,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct ComissionableData<'a> {
     pub setup_discriminator: u16,
     pub setup_passcode: u32,
@@ -505,6 +506,7 @@ impl<const ID: chip_EndpointId> StaticEndpoint<ID> {
     }
 }
 
+#[derive(Debug)]
 pub struct EndpointRegistration<'r>(chip_EndpointId, PhantomData<&'r ()>);
 
 impl<'r> EndpointRegistration<'r> {
@@ -603,6 +605,7 @@ impl<'r> Drop for EndpointRegistration<'r> {
 }
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct EndpointType<'a, 'c>(EmberAfEndpointType, PhantomData<&'a [&'c ()]>);
 
 impl<'a, 'c> EndpointType<'a, 'c> {
@@ -625,6 +628,7 @@ impl<'a, 'c> EndpointType<'a, 'c> {
 unsafe impl Send for EndpointType<'static, 'static> {}
 unsafe impl<'a, 'c> Sync for EndpointType<'a, 'c> {}
 
+#[derive(Debug)]
 pub struct ClusterIterator<'i, 'a, 'c> {
     ep: &'i EndpointType<'a, 'c>,
     index: usize,
@@ -650,6 +654,7 @@ impl<'i, 'a, 'c> Iterator for ClusterIterator<'i, 'a, 'c> {
 }
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct DeviceType(EmberAfDeviceType);
 
 impl DeviceType {
@@ -672,6 +677,7 @@ impl DeviceType {
 pub type DeviceTypes<'a> = &'a [DeviceType];
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct Cluster<'a>(EmberAfCluster, PhantomData<&'a ()>);
 
 impl<'a> Cluster<'a> {
@@ -825,6 +831,7 @@ unsafe impl<'a> Sync for Cluster<'a> {}
 
 pub type Clusters<'a, 'c> = &'a [Cluster<'c>];
 
+#[derive(Debug)]
 pub struct AttributeIterator<'i, 'a> {
     cluster: &'i Cluster<'a>,
     index: usize,
@@ -955,6 +962,7 @@ impl Attribute {
 
 pub type Attributes<'a> = &'a [Attribute];
 
+#[derive(Debug)]
 #[repr(transparent)]
 pub struct Command(chip_CommandId);
 

@@ -70,9 +70,6 @@ impl ChipError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for ChipError {}
-
 impl fmt::Display for ChipError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe fn strlen(c_s: *const ffi::c_char) -> usize {
@@ -90,6 +87,9 @@ impl fmt::Display for ChipError {
         }
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for ChipError {}
 
 unsafe impl Send for ChipError {}
 unsafe impl Sync for ChipError {}
@@ -180,14 +180,14 @@ impl EmberAfError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for EmberAfError {}
-
 impl fmt::Display for EmberAfError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "EMBER AF ERROR: {}", self.0)
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for EmberAfError {}
 
 /// Convert a [`EmberAfStatus`] into a [`Result<(), EmberAfError>`](Result).
 ///

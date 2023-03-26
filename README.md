@@ -7,6 +7,8 @@ A SYS crate for the [Matter C++ SDK](https://github.com/project-chip/connectedho
 
 Currently buildable and runnable on Linux only, but should not be difficult to port to ESP32 and other MCUs which are already supported by the C++ SDK.
 
+Purpose in life: serve as a **stop gap** solution, until the [native Rust Matter SDK](https://github.com/project-chip/matter-rs) project gets feature parity with the Matter C++ SDK.
+
 ## Demo
 * Install the [Linux build prerequisites](https://github.com/project-chip/connectedhomeip/blob/master/docs/guides/BUILDING.md#installing-prerequisites-on-linux). For Debian/Ubuntu:
   ```sh
